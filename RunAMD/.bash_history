@@ -14,3 +14,16 @@ exit
 pwd
 ls
 exit
+ls
+exit
+ls
+cd ..
+ls
+cd root
+ls
+./ChompChamps
+./ChompChamps -p
+./ChompChamps -p 2\
+./ChompChamps -p 2
+clear
+exit

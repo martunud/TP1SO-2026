@@ -7,3 +7,4 @@ ls
 chmod +x ChompChamps
 ./ChompChamps
 exit
+exit
