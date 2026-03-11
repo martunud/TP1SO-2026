@@ -9,3 +9,8 @@ cd /root
 ls
 ./ChompChamps -p 2
 exit
+exit
+exit
+pwd
+ls
+exit
