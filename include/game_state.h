@@ -1,0 +1,1 @@
+// structs compartidos (tablero, jugadores)

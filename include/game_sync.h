@@ -1,0 +1,1 @@
+// structs de sincronización (semáforos)
