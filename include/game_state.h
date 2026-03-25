@@ -13,3 +13,12 @@ typedef struct {
     bool blocked;            // Si está bloqueado
 } player_t;
 
+//struct principal del tablero
+typedef struct {
+    unsigned short width; // Ancho del tablero
+    unsigned short height; // Alto del tablero
+    unsigned char players_amount; // Cantidad de jugadores
+    player_t players[9]; // Lista de jugadores
+    bool ended; // Indica si el juego se ha terminado
+    signed char board[]; // Puntero al comienzo del tablero. fila-0, fila-1, ...
+} board_t; 
