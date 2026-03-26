@@ -12,12 +12,21 @@
 /* -p ruta de los binarios de los jugadores. Mínimo 1, Máximo 9
 */
 
-int parse_args(int argc, char *argv[], const char *optstring, unsigned int *width, unsigned int *height, unsigned int *delay, int *timeout, unsigned int *seed, char **view, char *player[MAX_PLAYERS], int *num_players ){
+int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *height, unsigned int *delay, int *timeout, unsigned int *seed, char **view, char *player[MAX_PLAYERS], int *num_players ){
     int opt;
     char *endptr;
     unsigned long val;
 
-    while((opt = getopt(argc, argv, "w:h:d:t:s:v:p:")) != -1){ //distinto a -1 pues getopt() retorna 1 al terminar
+    //defaults
+    *width = 10;
+    *height = 10;
+    *delay = 200;
+    *timeout = 10;
+    *seed = (unsigned int) time(NULL);
+    *view = NULL;
+    *num_players = 0;
+
+    while((opt = getopt(argc, argv, "w:h:d:t:s:v:p:")) != -1){ //distinto a -1 pues getopt() retorna -1 al terminar
         switch(opt){
             case'w':
                 val = strtoul(optarg, &endptr, 10);
@@ -25,7 +34,7 @@ int parse_args(int argc, char *argv[], const char *optstring, unsigned int *widt
                     fprintf(stderr, "Invalid integer %s\n", optarg);
                     return -1;
                 }
-                *width = (unsigned int) val;
+                *width = (unsigned short) val;
                 break;
             case 'h': 
                 val = strtoul(optarg, &endptr, 10);
@@ -33,7 +42,7 @@ int parse_args(int argc, char *argv[], const char *optstring, unsigned int *widt
                     fprintf(stderr, "Invalid integer %s\n", optarg);
                     return -1;
                 }   
-                *height = (unsigned int) val;        
+                *height = (unsigned short) val;        
                 break;
             case 'd':
                 val = strtoul(optarg, &endptr, 10);
@@ -70,10 +79,16 @@ int parse_args(int argc, char *argv[], const char *optstring, unsigned int *widt
                 player[*num_players] = optarg; 
                 (*num_players)++; 
                 break;
+                // ver que onda cuando haces -p sin nada después, debería tirar error de opción inválida, no de falta de jugadores
             case '?':
                 fprintf(stderr, "./ChompChamps: invalid option -- %c \nUsage: ./ChompChamps [-w width] [-h height] [-d delay] [-s seed] [-v view] [-t timeout] [-i] -p player1 player2 ...\n", optopt);
                 return -1;                 
         }
     }
+    if (*num_players == 0) {
+        fprintf(stderr, "Error: At least one player must be specified using -p.\n");
+        return -1;
+    }
+    
     return 0;
 }
