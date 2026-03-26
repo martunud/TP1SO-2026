@@ -16,3 +16,11 @@ ls
 cd ../
 ls
 exit
+ls
+./ChompChamps
+./ChompChamps -p 2
+ls
+./ChompCHamps
+./ChompChamps -p 2
+clear
+exit
