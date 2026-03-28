@@ -1,7 +1,4 @@
-// proceso master 
-
 #include "master.h"
-
 
 // -w ancho tablero default y minimo: 10
 // -h altura tablero default y minimo: 10
@@ -15,7 +12,6 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
     int opt;
     char *endptr;
     unsigned long val;
-    opterr = 0;
 
     //defaults
     *width = 10;
