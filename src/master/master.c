@@ -2,20 +2,20 @@
 
 #include "master.h"
 
-/*
-/*  -w ancho tablero default y minimo: 10
-/* -h altura tablero default y minimo: 10
-/* -d milisegundos que espera el máster cada vez que se imprime el estado default: 200
-/* -t timeout en segundos para recibir solicitudes de movimientos válidos default: 10
-/* -s semilla utilizada para la generación del tablero default time(NULL)
-/* -v ruta del binario de la vista default: sin vista
-/* -p ruta de los binarios de los jugadores. Mínimo 1, Máximo 9
-*/
+
+// -w ancho tablero default y minimo: 10
+// -h altura tablero default y minimo: 10
+// -d milisegundos que espera el máster cada vez que se imprime el estado default: 200
+// -t timeout en segundos para recibir solicitudes de movimientos válidos default: 10
+// -s semilla utilizada para la generación del tablero default time(NULL)
+// -v ruta del binario de la vista default: sin vista
+// -p ruta de los binarios de los jugadores. Mínimo 1, Máximo 9
 
 int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *height, unsigned int *delay, int *timeout, unsigned int *seed, char **view, char *player[MAX_PLAYERS], int *num_players ){
     int opt;
     char *endptr;
     unsigned long val;
+    opterr = 0;
 
     //defaults
     *width = 10;
@@ -79,10 +79,9 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
                 player[*num_players] = optarg; 
                 (*num_players)++; 
                 break;
-                // ver que onda cuando haces -p sin nada después, debería tirar error de opción inválida, no de falta de jugadores
             case '?':
-                fprintf(stderr, "./ChompChamps: invalid option -- %c \nUsage: ./ChompChamps [-w width] [-h height] [-d delay] [-s seed] [-v view] [-t timeout] [-i] -p player1 player2 ...\n", optopt);
-                return -1;                 
+                fprintf(stderr, "%s: invalid option -- %c \nUsage: %s [-w width] [-h height] [-d delay] [-s seed] [-v view] [-t timeout] [-i] -p player1 player2 ...\n", argv[0], optopt, argv[0]);
+                return -1;                
         }
     }
     if (*num_players == 0) {
@@ -90,5 +89,32 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
         return -1;
     }
     
+    return 0;
+}
+
+int main (int argc, char *argv[]) {
+    unsigned short width, height;
+    unsigned int delay, seed;
+    int timeout, num_players;
+    char *view;
+    char *player[MAX_PLAYERS];
+
+    int parsed = parse_args(argc, argv, &width, &height, &delay, &timeout, &seed, &view, player, &num_players);
+
+    if(parsed == -1){
+        exit(1);
+    }
+    else{
+        printf("width: %hu\nheight: %hu\ndelay: %u\ntimeout: %d\nseed: %u\n", width, height, delay, timeout, seed);
+        if(view == NULL){
+            printf("view: -\n");
+        }else{
+            printf("view: %s\n", view);
+        }
+        printf("num_players: %d\n", num_players);
+        for(int i=0; i<num_players; i++){
+            printf("  %s\n", player[i]);
+        }
+    }
     return 0;
 }
