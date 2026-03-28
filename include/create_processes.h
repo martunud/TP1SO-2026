@@ -1,0 +1,7 @@
+#include <master.h>
+
+void init_view_players(unsigned short width, unsigned short height, unsigned char players_amount, char *player_paths[], char * view_path, pid_t * view_pid, pid_t players_pid[]);
+
+pid_t view_fork(unsigned short width, unsigned short height, char * view_path);
+
+pid_t player_fork(unsigned short width, unsigned short height, char * player_path);
