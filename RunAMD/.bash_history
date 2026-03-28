@@ -27,3 +27,6 @@ ls
 ./ChompChamps -p 2
 clear
 exit
+./bin/master
+./bin/master
+exit
