@@ -65,8 +65,8 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
         int aux=0;
         int x, y; 
         while(aux == 0){
-            x = rand() % width; 
-            y = rand() % height;
+            x = rand() % height; 
+            y = rand() % width;
 
             aux = checkCoord(game_state, width, x,y);
         }
@@ -117,4 +117,45 @@ sync_t * create_shm_sync(){
     memset(buf, 0, total_size);
     
     return buf;
+}
+
+// inicializa los semaforos de sync_t
+void init_sync(sync_t *sync, unsigned char players_amount){
+    int sem = sem_init(&sync->state_changed, 1, 0); 
+    if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+
+    sem = sem_init(&sync->view_done, 1, 0); 
+    if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+
+    sem = sem_init(&sync->writer_mutex, 1, 1); 
+    if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+
+    sem = sem_init(&sync->state_mutex, 1, 1); 
+    if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+
+    sem = sem_init(&sync->readers_count_mutex, 1, 1); 
+    if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+
+    for(int i=0 ; i<players_amount ; i++){
+        sem = sem_init(&sync->move_processed[i], 1, 1); 
+        if(sem == -1){
+        perror("sem_init"); 
+        exit(1);
+    }
+    }
 }

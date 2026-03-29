@@ -30,3 +30,8 @@ exit
 ./bin/master
 ./bin/master
 exit
+./bin/master
+make clean
+make
+./bin/master
+./bin/master -p player

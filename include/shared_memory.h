@@ -13,4 +13,6 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
 
 sync_t * create_shm_sync();
 
+void init_sync(sync_t *sync, unsigned char players_amount);
+
 #endif

@@ -1,5 +1,4 @@
 // proceso vista provisorio para compilar el master
-#include <stdlib.h>
 #include <master.h>
 
 int main(int argc, char *argv[]) {
@@ -45,5 +44,16 @@ int main(int argc, char *argv[]) {
 
     close(shm_fd);
 
+    //la vista tiene que correr mientras el juego siga en curso
+    while(buf->ended == 0){
+        int aux = sem_wait(&bufSync->state_changed); 
+        if(aux == -1){
+            perror("sem_wait state changed");
+            exit(1);
+        }
+
+    }
+
     return 0;
 }
+
