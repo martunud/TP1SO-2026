@@ -60,3 +60,34 @@ exit
 ls
 make
 exit
+make
+make
+clear
+make
+clear
+make
+./bin/master -p 2
+./bin/master
+./bin/master -w 42abc -p 2
+./bin/master -w 5 -p 2
+./bin/master -h 42abc -p 2
+./bin/master -h 5 -p 2
+./bin/master -d 42abc -p 2
+./bin/master -t 42abc -p 2
+./bin/master -s 42abc -p 2
+./bin/master -z -p 2
+./bin/master -p 1 -p 2 -p 3 -p 4 -p 5 -p 6 -p 7 -p 8 -p 9
+./bin/master -p 1 -p 2 -p 3 -p 4 -p 5 -p 6 -p 7 -p 8 -p 9 -p 10
+./bin/master -v /bin/vista -p 2
+./bin/master -w 20 -h 15 -d 500 -t 30 -s 12345 -v /bin/vista -p player1 -p player2
+./bin/master -p
+make
+./bin/master -p
+clear
+./bin/master -p
+make
+./bin/master -p
+clear
+make
+./bin/master -p
+./bin/master -p 1 -z

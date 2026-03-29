@@ -1,3 +1,6 @@
+#ifndef GAME_STATE_H
+#define GAME_STATE_H
+
 // structs compartidos (tablero, jugadores)
 #include <sys/types.h> // para pid_t
 #include <stdbool.h>    // para bool
@@ -22,3 +25,5 @@ typedef struct {
     bool ended; // Indica si el juego se ha terminado
     signed char board[]; // Puntero al comienzo del tablero. fila-0, fila-1, ...
 } game_state_t; 
+
+#endif

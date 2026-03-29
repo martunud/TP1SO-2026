@@ -13,17 +13,30 @@ int main (int argc, char *argv[]) {
     if(parsed == -1){
         exit(1);
     }
-    else{
-        printf("width: %hu\nheight: %hu\ndelay: %u\ntimeout: %d\nseed: %u\n", width, height, delay, timeout, seed);
-        if(view == NULL){
-            printf("view: -\n");
-        }else{
-            printf("view: %s\n", view);
-        }
-        printf("num_players: %d\n", num_players);
-        for(int i=0; i<num_players; i++){
-            printf("  %s\n", player[i]);
-        }
+
+    printf("width: %hu\nheight: %hu\ndelay: %u\ntimeout: %d\nseed: %u\n", width, height, delay, timeout, seed);
+    if(view == NULL){
+        printf("view: -\n");
+    }else{
+        printf("view: %s\n", view);
     }
+    printf("num_players: %d\n", num_players);
+    for(int i=0; i<num_players; i++){
+        printf("  %s\n", player[i]);
+    }
+
+    game_state_t *game_state = create_game_shm(width, height);
+    if(game_state == NULL){
+        exit(1);
+    }
+
+    sync_t *sync = create_shm_sync();
+    if(sync == NULL){
+     exit(1);
+    }
+    player_t players[MAX_PLAYERS];
+    init_players(players, player, num_players);
+    init_game_state(game_state, width, height, (unsigned char)num_players, players, &seed);
+
     return 0;
 }

@@ -1,3 +1,6 @@
+#ifndef MASTER_H
+#define MASTER_H
+
 #include <unistd.h> 
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,3 +20,5 @@ extern int opterr;
 extern int optopt;
 
 #define MAX_PLAYERS 9
+
+#endif

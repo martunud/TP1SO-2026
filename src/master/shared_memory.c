@@ -1,4 +1,9 @@
 #include <shared_memory.h>
+#include <string.h>
+
+static int checkCoord(game_state_t * game_state,unsigned short width, int x, int y){
+    return game_state->board[x*width + y] > 0 ;
+}
 
 game_state_t * create_game_shm(unsigned short width, unsigned short height){
     if (width == 0 || height == 0) {
@@ -70,9 +75,16 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
         game_state ->players[i].y = y;
     }    
 }
-
-static int checkCoord(game_state_t * game_state,unsigned short width, int x, int y){
-    return game_state->board[x*width + y] > 0 ;
+// inicializa una struct player_t por cada jugador que participe, sirve para hacer el arreglo de structs de players que pide init_game_state
+void init_players(player_t players[], char *player_paths[], int num_players){
+    for(int i = 0; i < num_players; i++){
+    strncpy(players[i].players_name, player_paths[i], 16);
+    players[i].players_name[15] = '\0';
+    players[i].score = 0;
+    players[i].valid_moves = 0;
+    players[i].invalid_moves = 0;
+    players[i].blocked = false;
+    }
 }
 
 sync_t * create_shm_sync(){

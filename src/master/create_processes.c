@@ -32,6 +32,7 @@ if(pid_view == 0) {
 } else if(pid_view < 0) {
     // fork falló
     perror("fork player");
+    exit(1);
 }
 // padre sigue
 return pid_view; 
