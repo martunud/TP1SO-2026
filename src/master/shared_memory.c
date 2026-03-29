@@ -85,7 +85,7 @@ void init_players(player_t players[], char *player_paths[], int num_players){
     players[i].invalid_moves = 0;
     players[i].blocked = false;
     }
-}
+}//este no deberia ser con firma player_t * players[] ? para que se modifique el struct ?
 
 sync_t * create_shm_sync(){
     size_t total_size = sizeof(sync_t);

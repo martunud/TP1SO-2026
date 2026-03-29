@@ -1,6 +1,6 @@
 #include <create_processes.h>
 
-void init_view_players(unsigned short width, unsigned short height, unsigned char players_amount, char *player_paths[], char * view_path, pid_t * view_pid, pid_t players_pid[]){
+void init_view_players(unsigned short width, unsigned short height, unsigned char players_amount, char *player_paths[], char * view_path, pid_t * view_pid, pid_t players_pid[], int player_pipes[][2]){
     if(view_path != NULL){
         *view_pid = view_fork(width, height, view_path);
     }else{
@@ -8,8 +8,10 @@ void init_view_players(unsigned short width, unsigned short height, unsigned cha
     }
 
     for(int i=0 ; i<players_amount ; i++){
-        pid_t player_pid = player_fork(width, height, player_paths[i]);
+        pipe(player_pipes[i]);
+        pid_t player_pid = player_fork(width, height, player_paths[i], player_pipes[i]);
         players_pid[i]= player_pid;
+        close(player_pipes[i][1]); 
     }
 }
 
@@ -38,7 +40,7 @@ if(pid_view == 0) {
 return pid_view; 
 }
 
-pid_t player_fork(unsigned short width, unsigned short height, char * player_path){
+pid_t player_fork(unsigned short width, unsigned short height, char * player_path, int * player_pipe){
     pid_t pid_player = fork();
 if(pid_player == 0) {
     // el player es el hijo
@@ -50,6 +52,9 @@ if(pid_player == 0) {
     args[1] = buf_w;
     args[2] = buf_h;
     args[3] = NULL;
+    dup2(player_pipe[1], 1);
+    close(player_pipe[1]);
+    close(player_pipe[0]);
     execve(player_path, args, NULL);
     // si execve falla, llegamos acá
     perror("execve vista");

@@ -34,9 +34,18 @@ int main (int argc, char *argv[]) {
     if(sync == NULL){
      exit(1);
     }
+
+    init_sync(sync, num_players);
+
+    int players_pipe[num_players][2]; 
+
     player_t players[MAX_PLAYERS];
     init_players(players, player, num_players);
     init_game_state(game_state, width, height, (unsigned char)num_players, players, &seed);
 
+    pid_t players_pid[MAX_PLAYERS];
+    pid_t view_pid;
+
+    init_view_players(width, height, (unsigned char)num_players, player, view, &view_pid, players_pid);
     return 0;
 }
