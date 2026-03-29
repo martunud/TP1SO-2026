@@ -43,7 +43,8 @@ int main(int argc, char *argv[]) {
     }
 
     close(shm_fd);
-
+    
+    char symbols[9] = {'@', '#', '$', '%', '^', '&', '*', '(', '!'};
     //la vista tiene que correr mientras el juego siga en curso
     while(buf->ended == 0){
         int aux = sem_wait(&bufSync->state_changed); 
@@ -52,8 +53,41 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
+        //imprimir tablero
+        for(int i=0; i< height; i++){
+            for(int j=0; j< width; j++){
+                signed char cell = buf -> board[i * width + j];
+                if(cell > 0){
+                    printf("%d", cell);
+                }else{
+                    printf("%c", symbols[-cell]);
+                }
+            }
+            printf("\n");
+        }
+        
+        //imprimir info jugadores
+        for(int a=0; a< buf->players_amount; a++){
+            printf("(%c) %s | puntaje: %u | válidos: %u | inválidos: %u | pos: (%hu, %hu) | bloqueado: %s\n",
+            symbols[a],
+            buf->players[a].players_name,
+            buf->players[a].score,
+            buf->players[a].valid_moves,
+            buf->players[a].invalid_moves,
+            buf->players[a].x,
+            buf->players[a].y,
+            buf->players[a].blocked ? "si" : "no"
+            );
+        }
+        sem_post(&bufSync->view_done);
     }
-
+    int winner = 0;  // índice del ganador
+    for(int i = 0; i < buf->players_amount; i++){
+        if(buf->players[i].score > buf->players[winner].score){
+            winner = i;
+        }
+    }
+    printf("The winner is: %s (%c)\n", buf->players[winner].players_name, symbols[winner]);
     return 0;
 }
 

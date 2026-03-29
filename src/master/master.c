@@ -1,5 +1,6 @@
 #include <shared_memory.h>
 #include <args.h>
+#include <create_processes.h>
 
 int main (int argc, char *argv[]) {
     unsigned short width, height;
@@ -46,6 +47,6 @@ int main (int argc, char *argv[]) {
     pid_t players_pid[MAX_PLAYERS];
     pid_t view_pid;
 
-    init_view_players(width, height, (unsigned char)num_players, player, view, &view_pid, players_pid);
+    init_view_players(width, height, (unsigned char)num_players, player, view, &view_pid, players_pid, players_pipe);
     return 0;
 }

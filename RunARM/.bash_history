@@ -91,3 +91,33 @@ clear
 make
 ./bin/master -p
 ./bin/master -p 1 -z
+ls
+make
+ls
+cd bin
+make
+cd ../
+make
+clear
+make
+clear
+make
+cllear
+clear
+make
+make
+clear
+make
+make
+./bin/master.c -p 2
+ls
+cd bin
+ls
+./bin/master -p 2
+clear
+./master -p 2
+../
+/..
+cd ../
+make
+./bin/master -p 2
