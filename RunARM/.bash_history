@@ -121,3 +121,13 @@ clear
 cd ../
 make
 ./bin/master -p 2
+ls
+make
+make
+clear
+clear
+make
+clear
+make
+clear
+make
