@@ -1,6 +1,6 @@
 #include <create_processes.h>
 
-void init_view_players(unsigned short width, unsigned short height, unsigned char players_amount, char *player_paths[], char * view_path, pid_t * view_pid, pid_t players_pid[], int player_pipes[][2]){
+void init_view_players(unsigned short width, unsigned short height, unsigned char players_amount, char *player_paths[], char * view_path, pid_t * view_pid, game_state_t * game_state, int player_pipes[][2]){
     if(view_path != NULL){
         *view_pid = view_fork(width, height, view_path);
     }else{
@@ -15,7 +15,7 @@ void init_view_players(unsigned short width, unsigned short height, unsigned cha
     // después hacemos los forks
     for(int i=0 ; i<players_amount ; i++){
         pid_t player_pid = player_fork(width, height, player_paths[i], player_pipes, players_amount, i);
-        players_pid[i]= player_pid;
+        game_state->players[i].pid = player_pid;
         close(player_pipes[i][1]); 
     }
 }

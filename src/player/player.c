@@ -3,18 +3,26 @@
 #include <shared_memory.h>
 
 int main(int argc, char *argv[]) {
-     if(argc !=4){
+     if(argc !=3){
         fprintf(stderr, "Error parametros vista\n");
         exit(1); 
     }
 
     unsigned short width = atoi(argv[1]); 
     unsigned short height = atoi(argv[2]);
-    int idx = atoi(argv[3]); 
 
     game_state_t * buf_game = open_game_shm(width,height);
 
     sync_t * buf_sync = open_shm_sync();
+
+    pid_t pid_player = getpid(); 
+    int idx = -1; 
+
+    for(int i=0 ; i<buf_game->players_amount && idx == -1 ; i++){
+        if(pid_player == buf_game->players[i].pid){
+            idx = i; 
+        }
+    }
 
     while(buf_game->ended==0){ //el juego sigue corriendo
         int aux = sem_wait(&buf_sync->move_processed[idx]);
