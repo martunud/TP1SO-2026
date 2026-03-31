@@ -25,12 +25,12 @@ int main(int argc, char *argv[]) {
     }
 
     while(buf_game->ended==0){ //el juego sigue corriendo
-        int aux = sem_wait(&buf_sync->move_processed[idx]);
-        if(aux==-1){
+        if(sem_wait(&buf_sync->move_processed[idx]) == -1){
             perror("sem wait failed");
             exit(1); 
         }
 
+        sem_wait(&buf_sync->writer_mutex);
         sem_wait(&buf_sync->readers_count_mutex);
         buf_sync->readers_count++; 
 
@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
         }
 
         sem_post(&buf_sync->readers_count_mutex);
+        sem_post(&buf_sync->writer_mutex);
 
         unsigned short x = buf_game->players[idx].x;
         unsigned short y = buf_game->players[idx].y;
@@ -51,6 +52,9 @@ int main(int argc, char *argv[]) {
         }
 
         sem_post(&buf_sync->readers_count_mutex);
+        
+        unsigned char move = rand() % 8;
+        write(STDOUT_FILENO, &move, sizeof(unsigned char));
 
     }
 
