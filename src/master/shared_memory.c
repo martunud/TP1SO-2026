@@ -159,3 +159,48 @@ void init_sync(sync_t *sync, unsigned char players_amount){
     }
     }
 }
+
+game_state_t * open_game_shm(unsigned short width, unsigned short height){
+    int shm_fd = shm_open("/game_state", O_RDONLY, 0);
+    if(shm_fd < 0){
+        perror("shm_open");
+        exit(1);
+    }
+
+    size_t total_size = sizeof(game_state_t) + width * height * sizeof(signed char);
+
+    game_state_t * buf = (game_state_t *) mmap(NULL, total_size, PROT_READ, MAP_SHARED, shm_fd, 0);
+    if(buf == MAP_FAILED){
+        perror("mmap");
+        close(shm_fd);
+        exit(1);
+    }
+
+    close(shm_fd);
+
+    return buf; 
+}
+
+sync_t * open_shm_sync(){
+    int shm_fd = shm_open("/game_sync",  O_RDWR, 0644);
+    if(shm_fd < 0){
+        perror("shm_open");
+        exit(1);
+    }
+
+    size_t total_size = sizeof(sync_t);
+
+    sync_t * buf = (sync_t *) mmap(NULL, total_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if(buf == MAP_FAILED){
+        perror("mmap");
+        close(shm_fd);
+        exit(1);
+    }
+
+    close(shm_fd);
+
+    return buf; 
+}
+
+
+

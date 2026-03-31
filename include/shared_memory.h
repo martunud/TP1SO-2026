@@ -15,4 +15,8 @@ sync_t * create_shm_sync();
 
 void init_sync(sync_t *sync, unsigned char players_amount);
 
+game_state_t * open_game_shm(unsigned short width, unsigned short height);
+
+sync_t * open_shm_sync();
+
 #endif
