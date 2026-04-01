@@ -7,6 +7,6 @@ void init_view_players(unsigned short width, unsigned short height, unsigned cha
 
 pid_t view_fork(unsigned short width, unsigned short height, char * view_path);
 
-pid_t player_fork(unsigned short width, unsigned short height, char * player_path, int * player_pipe, int idx);
+pid_t player_fork(unsigned short width, unsigned short height, char * player_path, int player_pipes[][2], int num_players, int player_index);
 
 #endif

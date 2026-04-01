@@ -44,7 +44,6 @@ int main (int argc, char *argv[]) {
     init_players(players, player, num_players);
     init_game_state(game_state, width, height, (unsigned char)num_players, players, &seed);
 
-    pid_t players_pid[MAX_PLAYERS];
     pid_t view_pid;
 
     init_view_players(width, height, (unsigned char)num_players, player, view, &view_pid, game_state , players_pipe);

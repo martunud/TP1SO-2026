@@ -64,13 +64,14 @@ pid_t player_fork(unsigned short width, unsigned short height, char * player_pat
     
         
         char *args[5];
-        char buf_w[6], buf_h[6];
+        char buf_w[6], buf_h[6], buf_idx[6];
         sprintf(buf_w, "%d", width);
         sprintf(buf_h, "%d", height);
+        sprintf(buf_idx, "%d", player_index);
         args[0] = player_path;
         args[1] = buf_w;
         args[2] = buf_h;
-        args[3] = player_index;
+        args[3] = buf_idx;
         args[4] = NULL; 
         execve(player_path, args, NULL);
         // si execve falla, llegamos acá

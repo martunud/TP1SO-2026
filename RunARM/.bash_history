@@ -131,3 +131,17 @@ clear
 make
 clear
 make
+make clean
+make
+:/ChompCHamps
+exit
+make clean && make
+make clean && make
+exit
+make clean && make
+exit
+./ChompChamps
+cd RunAMD
+make clean && make
+./bin/master <width> <height> <num_players>
+exit

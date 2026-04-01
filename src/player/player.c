@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
         sem_post(&buf_sync->readers_count_mutex);
         sem_post(&buf_sync->writer_mutex);
 
-        unsigned short x = buf_game->players[idx].x;
-        unsigned short y = buf_game->players[idx].y;
+        // unsigned short x = buf_game->players[idx].x;
+        // unsigned short y = buf_game->players[idx].y;
 
         sem_wait(&buf_sync->readers_count_mutex);
         buf_sync->readers_count--;
