@@ -1,66 +1,89 @@
-// proceso vista provisorio para compilar el master
 #include <master.h>
 #include <shared_memory.h>
+#include <view/view_utils.h>
 
 int main(int argc, char *argv[]) {
+    int exit_status = 0;
+    bool finished = false;
+    view_context_t ctx;
+    game_state_t *buf_game = NULL;
+    sync_t *buf_sync = NULL;
+
     if(argc !=3){
         fprintf(stderr, "Error parametros vista\n");
-        exit(1); 
+        return 1;
     }
 
     unsigned short width = atoi(argv[1]); 
     unsigned short height = atoi(argv[2]);
 
-    game_state_t * buf_game = open_game_shm(width,height);
+    buf_game = open_game_shm(width,height);
+    buf_sync = open_shm_sync();
 
-    //close(shm_fd); quedo de un merge con conflict ver que onda
-    
-    char symbols[9] = {'@', '#', '$', '%', '^', '&', '*', '(', '!'};
-    sync_t * buf_sync = open_shm_sync();
+    if(init_view_context(&ctx, width, height) == -1){
+        exit_status = 1;
+        goto cleanup;
+    }
 
-    //la vista tiene que correr mientras el juego siga en curso
-    while(buf_game->ended == 0){
-        int aux = sem_wait(&buf_sync->state_changed); 
+    while(true){
+        int aux = sem_wait(&buf_sync->state_changed);
         if(aux == -1){
             perror("sem_wait state changed");
-            exit(1);
+            exit_status = 1;
+            goto cleanup;
         }
 
-        //imprimir tablero
-        for(int i=0; i< height; i++){
-            for(int j=0; j< width; j++){
-                signed char cell = buf_game -> board[i * width + j];
-                if(cell > 0){
-                    printf("%d", cell);
-                }else{
-                    printf("%c", symbols[-cell]);
-                }
+        if(view_reader_enter(buf_sync) == -1){
+            perror("view_reader_enter");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        update_player_trail(&ctx, buf_game);
+        finished = buf_game->ended;
+        render_game_frame(&ctx, buf_game, finished);
+
+        if(view_reader_exit(buf_sync) == -1){
+            perror("view_reader_exit");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        if(sem_post(&buf_sync->view_done) == -1){
+            perror("sem_post view_done");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        if(finished){
+            if(view_reader_enter(buf_sync) == -1){
+                perror("view_reader_enter");
+                exit_status = 1;
+                goto cleanup;
             }
-            printf("\n");
-        }
-        
-        //imprimir info jugadores
-        for(int a=0; a< buf_game->players_amount; a++){
-            printf("(%c) %s | puntaje: %u | válidos: %u | inválidos: %u | pos: (%hu, %hu) | bloqueado: %s\n",
-            symbols[a],
-            buf_game->players[a].players_name,
-            buf_game->players[a].score,
-            buf_game->players[a].valid_moves,
-            buf_game->players[a].invalid_moves,
-            buf_game->players[a].x,
-            buf_game->players[a].y,
-            buf_game->players[a].blocked ? "si" : "no"
-            );
-        }
-        sem_post(&buf_sync->view_done);
-    }
-    int winner = 0;  // índice del ganador
-    for(int i = 0; i < buf_game->players_amount; i++){
-        if(buf_game->players[i].score > buf_game->players[winner].score){
-            winner = i;
-        }
-    }
-    printf("The winner is: %s (%c)\n", buf_game->players[winner].players_name, symbols[winner]);
-    return 0;
-}
 
+            update_player_trail(&ctx, buf_game);
+            render_final_frame(&ctx, buf_game);
+
+            if(view_reader_exit(buf_sync) == -1){
+                perror("view_reader_exit");
+                exit_status = 1;
+            }
+
+            break;
+        }
+    }
+
+cleanup:
+    destroy_view_context(&ctx);
+
+    if(close_game_shm(buf_game, width, height) == -1){
+        exit_status = 1;
+    }
+
+    if(close_shm_sync(buf_sync) == -1){
+        exit_status = 1;
+    }
+
+    return exit_status;
+}
