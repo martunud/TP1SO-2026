@@ -1,64 +1,232 @@
-// proceso jugador provisorio para compilar el master
+#include <errno.h>
 #include <master.h>
 #include <shared_memory.h>
 
-int main(int argc, char *argv[]) {
-     if(argc !=3){
-        fprintf(stderr, "Error parametros vista\n");
-        exit(1); 
+static const int DIRECTIONS[8][2] = {
+    {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+    {1, 0}, {1, -1}, {0, -1}, {-1, -1}
+};
+
+static int in_bounds(unsigned short width, unsigned short height, int x, int y){
+    return x >= 0 && x < height && y >= 0 && y < width;
+}
+
+static int reader_enter(sync_t *sync){
+    if(sem_wait(&sync->writer_mutex) == -1){
+        return -1;
     }
 
-    unsigned short width = atoi(argv[1]); 
-    unsigned short height = atoi(argv[2]);
-
-    game_state_t * buf_game = open_game_shm(width,height);
-
-    sync_t * buf_sync = open_shm_sync();
-
-    pid_t pid_player = getpid(); 
-    int idx = -1; 
-
-    for(int i=0 ; i<buf_game->players_amount && idx == -1 ; i++){
-        if(pid_player == buf_game->players[i].pid){
-            idx = i; 
-        }
+    if(sem_post(&sync->writer_mutex) == -1){
+        return -1;
     }
 
-    while(buf_game->ended==0){ //el juego sigue corriendo
-        if(sem_wait(&buf_sync->move_processed[idx]) == -1){
-            perror("sem wait failed");
-            exit(1); 
-        }
+    if(sem_wait(&sync->readers_count_mutex) == -1){
+        return -1;
+    }
 
-        sem_wait(&buf_sync->writer_mutex);
-        sem_wait(&buf_sync->readers_count_mutex);
-        buf_sync->readers_count++; 
+    sync->readers_count++;
+    if(sync->readers_count == 1 && sem_wait(&sync->state_mutex) == -1){
+        sync->readers_count--;
+        sem_post(&sync->readers_count_mutex);
+        return -1;
+    }
 
-        if(buf_sync->readers_count == 1){
-            sem_wait(&buf_sync->state_mutex);
-        }
-
-        sem_post(&buf_sync->readers_count_mutex);
-        sem_post(&buf_sync->writer_mutex);
-
-        // unsigned short x = buf_game->players[idx].x;
-        // unsigned short y = buf_game->players[idx].y;
-
-        sem_wait(&buf_sync->readers_count_mutex);
-        buf_sync->readers_count--;
-
-        if(buf_sync->readers_count == 0){
-            sem_post(&buf_sync->state_mutex);
-        }
-
-        sem_post(&buf_sync->readers_count_mutex);
-        
-        unsigned char move = rand() % 8;
-        write(STDOUT_FILENO, &move, sizeof(unsigned char));
-
+    if(sem_post(&sync->readers_count_mutex) == -1){
+        return -1;
     }
 
     return 0;
+}
 
+static int reader_exit(sync_t *sync){
+    if(sem_wait(&sync->readers_count_mutex) == -1){
+        return -1;
+    }
 
+    sync->readers_count--;
+    if(sync->readers_count == 0 && sem_post(&sync->state_mutex) == -1){
+        sem_post(&sync->readers_count_mutex);
+        return -1;
+    }
+
+    if(sem_post(&sync->readers_count_mutex) == -1){
+        return -1;
+    }
+
+    return 0;
+}
+
+static int count_future_moves(const game_state_t *game_state, unsigned short x, unsigned short y){
+    int future_moves = 0;
+
+    for(int direction = 0; direction < 8; direction++){
+        int next_x = (int)x + DIRECTIONS[direction][0];
+        int next_y = (int)y + DIRECTIONS[direction][1];
+
+        if(!in_bounds(game_state->width, game_state->height, next_x, next_y)){
+            continue;
+        }
+
+        if(game_state->board[next_x * game_state->width + next_y] > 0){
+            future_moves++;
+        }
+    }
+
+    return future_moves;
+}
+
+static unsigned char pick_direction(const game_state_t *game_state, unsigned short x, unsigned short y){
+    int best_dir = -1;
+    int best_reward = -1;
+    int best_future_moves = -1;
+    int fallback_dir = -1;
+    int fallback_reward = -1;
+
+    for(int direction = 0; direction < 8; direction++){
+        int next_x = (int)x + DIRECTIONS[direction][0];
+        int next_y = (int)y + DIRECTIONS[direction][1];
+
+        if(!in_bounds(game_state->width, game_state->height, next_x, next_y)){
+            continue;
+        }
+
+        signed char cell = game_state->board[next_x * game_state->width + next_y];
+        if(cell <= 0){
+            continue;
+        }
+
+        if(cell > fallback_reward){
+            fallback_reward = cell;
+            fallback_dir = direction;
+        }
+
+        int future_moves = count_future_moves(game_state, (unsigned short)next_x, (unsigned short)next_y);
+        if(future_moves == 0){
+            continue;
+        }
+
+        if(cell > best_reward || (cell == best_reward && future_moves > best_future_moves)){
+            best_dir = direction;
+            best_reward = cell;
+            best_future_moves = future_moves;
+        }
+    }
+
+    if(best_dir != -1){
+        return (unsigned char)best_dir;
+    }
+
+    if(fallback_dir != -1){
+        return (unsigned char)fallback_dir;
+    }
+
+    return 0;
+}
+
+static int write_move(unsigned char move){
+    size_t written_total = 0;
+
+    while(written_total < sizeof(move)){
+        ssize_t written = write(STDOUT_FILENO, ((unsigned char *)&move) + written_total, sizeof(move) - written_total);
+        if(written == -1){
+            if(errno == EINTR){
+                continue;
+            }
+
+            perror("write move");
+            return -1;
+        }
+
+        written_total += (size_t)written;
+    }
+
+    return 0;
+}
+
+static int find_player_index(const game_state_t *game_state, pid_t player_pid){
+    for(int attempt = 0; attempt < 10000; attempt++){
+        for(int i = 0; i < game_state->players_amount; i++){
+            if(game_state->players[i].pid == player_pid){
+                return i;
+            }
+        }
+
+        usleep(1000);
+    }
+
+    return -1;
+}
+
+int main(int argc, char *argv[]) {
+    int exit_status = 0;
+    game_state_t *buf_game = NULL;
+    sync_t *buf_sync = NULL;
+
+    if(argc != 3){
+        fprintf(stderr, "Error parametros jugador\n");
+        return 1;
+    }
+
+    unsigned short width = (unsigned short)atoi(argv[1]);
+    unsigned short height = (unsigned short)atoi(argv[2]);
+
+    buf_game = open_game_shm(width, height);
+    buf_sync = open_shm_sync();
+
+    int idx = find_player_index(buf_game, getpid());
+    if(idx == -1){
+        fprintf(stderr, "No se pudo identificar al jugador con pid %d\n", getpid());
+        exit_status = 1;
+        goto cleanup;
+    }
+
+    while(true){
+        if(sem_wait(&buf_sync->move_processed[idx]) == -1){
+            if(errno == EINTR){
+                continue;
+            }
+
+            perror("sem_wait move_processed");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        if(reader_enter(buf_sync) == -1){
+            perror("reader_enter");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        bool ended = buf_game->ended;
+        bool blocked = buf_game->players[idx].blocked;
+        unsigned short x = buf_game->players[idx].x;
+        unsigned short y = buf_game->players[idx].y;
+        unsigned char move = pick_direction(buf_game, x, y);
+
+        if(reader_exit(buf_sync) == -1){
+            perror("reader_exit");
+            exit_status = 1;
+            goto cleanup;
+        }
+
+        if(ended || blocked){
+            break;
+        }
+
+        if(write_move(move) == -1){
+            exit_status = 1;
+            goto cleanup;
+        }
+    }
+
+cleanup:
+    if(close_game_shm(buf_game, width, height) == -1){
+        exit_status = 1;
+    }
+
+    if(close_shm_sync(buf_sync) == -1){
+        exit_status = 1;
+    }
+
+    return exit_status;
 }

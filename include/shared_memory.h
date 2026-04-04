@@ -19,4 +19,14 @@ game_state_t * open_game_shm(unsigned short width, unsigned short height);
 
 sync_t * open_shm_sync();
 
+int close_game_shm(game_state_t *game_state, unsigned short width, unsigned short height);
+
+int close_shm_sync(sync_t *sync);
+
+int destroy_sync(sync_t *sync, unsigned char players_amount);
+
+int unlink_game_shm(void);
+
+int unlink_sync_shm(void);
+
 #endif

@@ -1,5 +1,10 @@
 #include <shared_memory.h>
+#include <errno.h>
 #include <string.h>
+
+static size_t game_state_size(unsigned short width, unsigned short height){
+    return sizeof(game_state_t) + width * height * sizeof(signed char);
+}
 
 static int checkCoord(game_state_t * game_state,unsigned short width, int x, int y){
     return game_state->board[x*width + y] > 0 ;
@@ -11,10 +16,10 @@ game_state_t * create_game_shm(unsigned short width, unsigned short height){
         return NULL;
     }
     
-    size_t total_size = sizeof(game_state_t) + width * height * sizeof(signed char);
+    size_t total_size = game_state_size(width, height);
     
     // Limpio la memoria anterior si existe
-    shm_unlink("/game_state");
+    unlink_game_shm();
     
     int shm_fd = shm_open("/game_state", O_CREAT | O_RDWR, 0644);
     if(shm_fd < 0){
@@ -90,7 +95,7 @@ void init_players(player_t players[], char *player_paths[], int num_players){
 sync_t * create_shm_sync(){
     size_t total_size = sizeof(sync_t);
     
-    shm_unlink("/game_sync");
+    unlink_sync_shm();
     
     int shm_fd = shm_open("/game_sync", O_CREAT | O_RDWR, 0644);
     if(shm_fd < 0){
@@ -167,7 +172,7 @@ game_state_t * open_game_shm(unsigned short width, unsigned short height){
         exit(1);
     }
 
-    size_t total_size = sizeof(game_state_t) + width * height * sizeof(signed char);
+    size_t total_size = game_state_size(width, height);
 
     game_state_t * buf = (game_state_t *) mmap(NULL, total_size, PROT_READ, MAP_SHARED, shm_fd, 0);
     if(buf == MAP_FAILED){
@@ -202,5 +207,88 @@ sync_t * open_shm_sync(){
     return buf; 
 }
 
+int close_game_shm(game_state_t *game_state, unsigned short width, unsigned short height){
+    if(game_state == NULL){
+        return 0;
+    }
+
+    if(munmap(game_state, game_state_size(width, height)) == -1){
+        perror("munmap game_state");
+        return -1;
+    }
+
+    return 0;
+}
+
+int close_shm_sync(sync_t *sync){
+    if(sync == NULL){
+        return 0;
+    }
+
+    if(munmap(sync, sizeof(sync_t)) == -1){
+        perror("munmap game_sync");
+        return -1;
+    }
+
+    return 0;
+}
+
+int destroy_sync(sync_t *sync, unsigned char players_amount){
+    if(sync == NULL){
+        return 0;
+    }
+
+    if(sem_destroy(&sync->state_changed) == -1){
+        perror("sem_destroy state_changed");
+        return -1;
+    }
+
+    if(sem_destroy(&sync->view_done) == -1){
+        perror("sem_destroy view_done");
+        return -1;
+    }
+
+    if(sem_destroy(&sync->writer_mutex) == -1){
+        perror("sem_destroy writer_mutex");
+        return -1;
+    }
+
+    if(sem_destroy(&sync->state_mutex) == -1){
+        perror("sem_destroy state_mutex");
+        return -1;
+    }
+
+    if(sem_destroy(&sync->readers_count_mutex) == -1){
+        perror("sem_destroy readers_count_mutex");
+        return -1;
+    }
+
+    for(int i = 0; i < players_amount; i++){
+        if(sem_destroy(&sync->move_processed[i]) == -1){
+            perror("sem_destroy move_processed");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+int unlink_game_shm(void){
+    if(shm_unlink("/game_state") == -1 && errno != ENOENT){
+        perror("shm_unlink /game_state");
+        return -1;
+    }
+
+    return 0;
+}
+
+int unlink_sync_shm(void){
+    if(shm_unlink("/game_sync") == -1 && errno != ENOENT){
+        perror("shm_unlink /game_sync");
+        return -1;
+    }
+
+    return 0;
+}
 
 

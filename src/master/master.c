@@ -3,6 +3,7 @@
 #include <create_processes.h>
 
 int main (int argc, char *argv[]) {
+    int exit_status = 0;
     unsigned short width, height;
     unsigned int delay, seed;
     int timeout, num_players;
@@ -12,7 +13,7 @@ int main (int argc, char *argv[]) {
     int parsed = parse_args(argc, argv, &width, &height, &delay, &timeout, &seed, &view, player, &num_players);
 
     if(parsed == -1){
-        exit(1);
+        return 1;
     }
 
     printf("width: %hu\nheight: %hu\ndelay: %u\ntimeout: %d\nseed: %u\n", width, height, delay, timeout, seed);
@@ -28,12 +29,13 @@ int main (int argc, char *argv[]) {
 
     game_state_t *game_state = create_game_shm(width, height);
     if(game_state == NULL){
-        exit(1);
+        return 1;
     }
 
     sync_t *sync = create_shm_sync();
     if(sync == NULL){
-     exit(1);
+        close_game_shm(game_state, width, height);
+        return 1;
     }
 
     init_sync(sync, num_players);
@@ -47,5 +49,14 @@ int main (int argc, char *argv[]) {
     pid_t view_pid;
 
     init_view_players(width, height, (unsigned char)num_players, player, view, &view_pid, game_state , players_pipe);
-    return 0;
+
+    if(close_game_shm(game_state, width, height) == -1){
+        exit_status = 1;
+    }
+
+    if(close_shm_sync(sync) == -1){
+        exit_status = 1;
+    }
+
+    return exit_status;
 }
