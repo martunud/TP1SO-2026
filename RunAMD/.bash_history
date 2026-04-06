@@ -35,3 +35,27 @@ make clean
 make
 ./bin/master
 ./bin/master -p player
+make clean && make
+exit
+make clean && make
+npm install ncourses
+apt-get update && apt-get install -y libncurses-dev
+make clean && make
+run
+exit
+make clean && make
+apt-get update && apt-get install -y libncurses-dev
+exit
+make clean && make
+apt-get update && apt-get install -y libncurses-dev
+make clean && make
+exit
+make clean && make
+apt-get update && apt-get install -y libncurses-dev
+make clean && make
+exit
+make clean && make
+apt-get update && apt-get install -y libncurses-dev
+./RunAMD/ChompChamps -v ./RunAMD/bin/view -p ./RunAMD/bin/player
+make clean && make
+exit
