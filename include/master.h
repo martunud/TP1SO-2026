@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/select.h>
 
 //Para la shared memory -> en man shm_open
 #include <sys/mman.h>
