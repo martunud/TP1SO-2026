@@ -111,7 +111,7 @@ int main (int argc, char *argv[]) {
         }
 
         if(max_fd == -1){
-            game_over == true; 
+            game_over = true; 
             break; 
         }
 
