@@ -29,4 +29,6 @@ int unlink_game_shm(void);
 
 int unlink_sync_shm(void);
 
+bool apply_move(game_state_t *game_state, int player_index, unsigned char move);
+
 #endif

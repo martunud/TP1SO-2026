@@ -1,18 +1,15 @@
 #include <shared_memory.h>
 #include <args.h>
 #include <create_processes.h>
+#include <sys/wait.h>
 
-int round_robin(game_state_t *game_state, sync_t *sync, int players_pipe[][2], int num_players, int *player_start, fd_set *read_fds, unsigned int delay){
-    for(int offset=0 ; offset < num_players; offset++){
-        int i = (*player_start + offset) % num_players; 
+int round_robin(game_state_t *game_state, sync_t *sync, int players_pipe[][2], int num_players, int *player_start, fd_set *read_fds, unsigned int delay, pid_t view_pid){
 
-        if(game_state->players[i].blocked){
-            continue; 
-        }
-        
-        if(!FD_ISSET(players_pipe[i][0], read_fds)){
-            continue; 
-        }
+     for(int offset = 0; offset < num_players; offset++){
+        int i = (*player_start + offset) % num_players;
+
+        if(game_state->players[i].blocked) continue; 
+        if(!FD_ISSET(players_pipe[i][0], read_fds)) continue; 
 
         unsigned char move; 
         ssize_t n = read(players_pipe[i][0], &move, 1); 
@@ -20,25 +17,34 @@ int round_robin(game_state_t *game_state, sync_t *sync, int players_pipe[][2], i
         if(n==0){
             game_state->players[i].blocked = true; 
             *player_start = (i + 1) % num_players;
-            
             return 0; 
         }else if(n==-1){
             perror("read pipe"); 
             return -1; 
         }
 
+        //writer lock antes de modificar el estado
+        sem_wait(&sync->writer_mutex);
+        sem_wait(&sync->state_mutex);
+        sem_post(&sync->writer_mutex);
+
         bool valid = apply_move(game_state, i , move); 
 
+        sem_post(&sync->state_mutex);
+        //fin de writer lock
+
+        if (valid && view_pid != -1){
         sem_post(&sync->state_changed); 
         sem_wait(&sync->view_done); 
-
-        usleep(delay * 1000); 
+        usleep(delay * 1000);
+        }
 
         sem_post(&sync->move_processed[i]); 
 
         *player_start = (i + 1) % num_players; 
         return valid ? 1 : 0; 
-    }
+
+    }   
 
     return 0; 
 }
@@ -55,17 +61,6 @@ int main (int argc, char *argv[]) {
 
     if(parsed == -1){
         return 1;
-    }
-
-    printf("width: %hu\nheight: %hu\ndelay: %u\ntimeout: %d\nseed: %u\n", width, height, delay, timeout, seed);
-    if(view == NULL){
-        printf("view: -\n");
-    }else{
-        printf("view: %s\n", view);
-    }
-    printf("num_players: %d\n", num_players);
-    for(int i=0; i<num_players; i++){
-        printf("  %s\n", player[i]);
     }
 
     game_state_t *game_state = create_game_shm(width, height);
@@ -136,23 +131,55 @@ int main (int argc, char *argv[]) {
             break; 
         }
 
-        if(round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay) == 1){
+        if(round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay, view_pid) == 1){
             last_valid_move = time(NULL); 
         }    
     }
 
     game_state->ended = true; 
-    sem_post(&sync->state_changed); 
-    sem_wait(&sync->view_done); 
 
-
-    if(close_game_shm(game_state, width, height) == -1){
-        exit_status = 1;
+    if(view_pid != -1){
+        sem_post(&sync->state_changed); 
+        sem_wait(&sync->view_done); 
     }
 
-    if(close_shm_sync(sync) == -1){
-        exit_status = 1;
+    // waitpid de la vista
+    if(view_pid != -1){
+        int status;
+        waitpid(view_pid, &status, 0);
+        if(WIFEXITED(status))
+            printf("view exit: %d\n", WEXITSTATUS(status));
+        else if(WIFSIGNALED(status))
+            printf("view killed by signal: %d\n", WTERMSIG(status));
     }
+
+    // waitpid de cada jugador
+    for(int i = 0; i < num_players; i++){
+        int status;
+        waitpid(game_state->players[i].pid, &status, 0);
+        if(WIFEXITED(status))
+            printf("player[%d] (%s) exit: %d score: %u\n",
+                   i, game_state->players[i].players_name,
+                   WEXITSTATUS(status), game_state->players[i].score);
+        else if(WIFSIGNALED(status))
+            printf("player[%d] (%s) killed by signal: %d score: %u\n",
+                   i, game_state->players[i].players_name,
+                   WTERMSIG(status), game_state->players[i].score);
+    }
+    
+    // cerrar pipes de jugadores
+    for(int i = 0; i < num_players; i++){
+        close(players_pipe[i][0]);
+    }
+
+    // limpieza de recursos
+    destroy_sync(sync, (unsigned char)num_players);
+    unlink_game_shm();
+    unlink_sync_shm();
+
+    close_game_shm(game_state, width, height);
+    close_shm_sync(sync);
+
 
     return exit_status;
 }

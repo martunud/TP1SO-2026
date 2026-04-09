@@ -64,8 +64,15 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
                     fprintf(stderr, "Error: At most %d players can be specified using -p.\n", MAX_PLAYERS); 
                     return -1;
                 }
-                player[*num_players] = optarg; 
-                (*num_players)++; 
+                player[(*num_players)++] = optarg; 
+                // ahora consumimos "player2", "player3", etc. manualmente
+                while(optind < argc && argv[optind][0] != '-'){
+                    if(*num_players >= MAX_PLAYERS){
+                    fprintf(stderr, "Error: At most %d players.\n", MAX_PLAYERS);
+                    return -1;
+                    }
+                    player[(*num_players)++] = argv[optind++];  // optind avanza manualmente
+                }
                 break;
             case '?':
                 fprintf(stderr, "%s: invalid option -- %c \nUsage: %s [-w width] [-h height] [-d delay] [-s seed] [-v view] [-t timeout] [-i] -p player1 player2 ...\n", argv[0], optopt, argv[0]);

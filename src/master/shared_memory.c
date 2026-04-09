@@ -6,9 +6,6 @@ static size_t game_state_size(unsigned short width, unsigned short height){
     return sizeof(game_state_t) + width * height * sizeof(signed char);
 }
 
-static int checkCoord(game_state_t * game_state,unsigned short width, int x, int y){
-    return game_state->board[x*width + y] > 0 ;
-}
 
 game_state_t * create_game_shm(unsigned short width, unsigned short height){
     if (width == 0 || height == 0) {
@@ -67,17 +64,34 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
 
     //falta inicializar players en el tablero
     for(int i = 0 ; i<players_amount; i++){
-        int aux=0;
-        int x, y; 
-        while(aux == 0){
-            x = rand() % height; 
-            y = rand() % width;
+        // dividir el tablero en 'players_amount' sectores horizontales
+        int sector_h = height / players_amount;
+        int row_start = i * sector_h;
+        int row_end   = (i == players_amount - 1) ? height : row_start + sector_h;
 
-            aux = checkCoord(game_state, width, x,y);
+        // intentar el centro del sector primero, si está ocupado buscar alrededor
+        int center_x = row_start + (row_end - row_start) / 2;
+        int center_y = width / 2;
+
+        int x = -1, y = -1;
+        // búsqueda en espiral desde el centro del sector
+        for(int radius = 0; radius <= (int)(height + width) && x == -1; radius++){
+            for(int dx = -radius; dx <= radius && x == -1; dx++){
+                for(int dy = -radius; dy <= radius && x == -1; dy++){
+                    if(abs(dx) != radius && abs(dy) != radius) continue;
+                    int nx = center_x + dx;
+                    int ny = center_y + dy;
+                    if(nx >= 0 && nx < height && ny >= 0 && ny < width
+                    && game_state->board[nx * width + ny] > 0){
+                    x = nx;
+                    y = ny;
+                    }
+                }
+            }
         }
-        game_state ->board[x*width+y] = -i;
-        game_state ->players[i].x = x;
-        game_state ->players[i].y = y;
+        game_state ->board[x*width+y] = (signed char)-i;
+        game_state ->players[i].x = (unsigned short)x;
+        game_state ->players[i].y = (unsigned short)y;
     }    
 }
 // inicializa una struct player_t por cada jugador que participe, sirve para hacer el arreglo de structs de players que pide init_game_state
@@ -291,4 +305,37 @@ int unlink_sync_shm(void){
     return 0;
 }
 
+bool apply_move(game_state_t *game_state, int player_index, unsigned char move) {
+    static const int DIRECTIONS[8][2] = {
+        {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+        {1, 0}, {1, -1}, {0, -1}, {-1, -1}
+    };
 
+    if (move > 7) {
+        game_state->players[player_index].invalid_moves++;
+        return false;
+    }
+
+    int new_x = (int)game_state->players[player_index].x + DIRECTIONS[move][0];
+    int new_y = (int)game_state->players[player_index].y + DIRECTIONS[move][1];
+
+    if (new_x < 0 || new_x >= game_state->height ||
+        new_y < 0 || new_y >= game_state->width) {
+        game_state->players[player_index].invalid_moves++;
+        return false;
+    }
+
+    signed char cell = game_state->board[new_x * game_state->width + new_y];
+    if (cell <= 0) {
+        game_state->players[player_index].invalid_moves++;
+        return false;
+    }
+
+    game_state->board[new_x * game_state->width + new_y] = (signed char)(-player_index);
+    game_state->players[player_index].score        += (unsigned int)cell;
+    game_state->players[player_index].valid_moves  += 1;
+    game_state->players[player_index].x             = (unsigned short)new_x;
+    game_state->players[player_index].y             = (unsigned short)new_y;
+
+    return true;
+}

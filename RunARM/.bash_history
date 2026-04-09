@@ -145,3 +145,24 @@ cd RunAMD
 make clean && make
 ./bin/master <width> <height> <num_players>
 exit
+make
+ecit
+exit
+apt-get update && apt-get install -y libncurses-dev
+make clean
+make
+exit
+apt-get update && apt-get install -y libncurses-dev
+make bin/view bin/player
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player 1 2 3
+./ChompChamps -t 3 -v ./bin/view -p ./bin/player 1 2 3
+make clean && make
+make clean && make
+apt-get install -y libncurses-dev
+make clean && make
+make clean && make
+listo!
