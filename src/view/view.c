@@ -75,11 +75,6 @@ int main(int argc, char *argv[]) {
     }
 
 cleanup:
-    if(finished){
-        mvprintw(height + 1, 0, "Presiona una tecla para salir...");
-        refresh();
-        getch();
-    }
     
     destroy_view_context(&ctx);
 

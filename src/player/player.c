@@ -143,39 +143,28 @@ static int write_move(unsigned char move){
     return 0;
 }
 
-static int find_player_index(const game_state_t *game_state, pid_t player_pid){
-    for(int attempt = 0; attempt < 10000; attempt++){
-        for(int i = 0; i < game_state->players_amount; i++){
-            if(game_state->players[i].pid == player_pid){
-                return i;
-            }
-        }
-
-        usleep(1000);
-    }
-
-    return -1;
-}
-
 int main(int argc, char *argv[]) {
     int exit_status = 0;
     game_state_t *buf_game = NULL;
     sync_t *buf_sync = NULL;
 
-    if(argc != 3){
-        fprintf(stderr, "Error parametros jugador\n");
+    // Esto elimina la espera activa de find_player_index (que violaba el enunciado), ya que el jugador no puede hacer nada hasta que el master lo haya inicializado en el estado del juego.
+
+    if(argc != 4){
+        fprintf(stderr, "Error parametros jugador (esperados: width height index)\n");
         return 1;
     }
 
     unsigned short width = (unsigned short)atoi(argv[1]);
     unsigned short height = (unsigned short)atoi(argv[2]);
+    int idx = atoi(argv[3]); 
 
     buf_game = open_game_shm(width, height);
     buf_sync = open_shm_sync();
+   
 
-    int idx = find_player_index(buf_game, getpid());
-    if(idx == -1){
-        fprintf(stderr, "No se pudo identificar al jugador con pid %d\n", getpid());
+    if(idx < 0 || idx >= buf_game->players_amount){
+        fprintf(stderr, "Indice de jugador invalido: %d\n", idx);
         exit_status = 1;
         goto cleanup;
     }

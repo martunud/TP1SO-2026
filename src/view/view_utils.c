@@ -89,7 +89,6 @@ static void draw_cell_number(int row, int col, signed char value){
 }
 
 static void draw_board(view_context_t *ctx, const game_state_t *game_state){
-    mvprintw(0, 0, "TABLERO (%hux%hu)", game_state->width, game_state->height);
     attron(A_BOLD);
     mvprintw(0, 0, "TABLERO (%hux%hu)", game_state->width, game_state->height);
     attroff(A_BOLD);

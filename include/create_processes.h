@@ -1,5 +1,5 @@
-#ifndef CREATE_PRROCESS_H
-#define CREATE_PRROCESS_H
+#ifndef CREATE_PROCESSES_H
+#define CREATE_PROCESSES_H
 
 #include <master.h>
 

@@ -2,10 +2,14 @@
 #include <errno.h>
 #include <string.h>
 
+static const int DIRECTIONS[8][2] = {
+    {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
+    {1, 0}, {1, -1}, {0, -1}, {-1, -1}
+};
+
 static size_t game_state_size(unsigned short width, unsigned short height){
     return sizeof(game_state_t) + width * height * sizeof(signed char);
 }
-
 
 game_state_t * create_game_shm(unsigned short width, unsigned short height){
     if (width == 0 || height == 0) {
@@ -62,7 +66,7 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
         }
     }
 
-    //falta inicializar players en el tablero
+    // Inicializar jugadores en el tablero en posiciones distintas.
     for(int i = 0 ; i<players_amount; i++){
         // dividir el tablero en 'players_amount' sectores horizontales
         int sector_h = height / players_amount;
@@ -89,7 +93,7 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
                 }
             }
         }
-        game_state ->board[x*width+y] = (signed char)-i;
+        game_state ->board[x*width+y] = (signed char)-(i+1);
         game_state ->players[i].x = (unsigned short)x;
         game_state ->players[i].y = (unsigned short)y;
     }    
@@ -104,7 +108,7 @@ void init_players(player_t players[], char *player_paths[], int num_players){
     players[i].invalid_moves = 0;
     players[i].blocked = false;
     }
-}//este no deberia ser con firma player_t * players[] ? para que se modifique el struct ?
+}
 
 sync_t * create_shm_sync(){
     size_t total_size = sizeof(sync_t);
@@ -306,11 +310,6 @@ int unlink_sync_shm(void){
 }
 
 bool apply_move(game_state_t *game_state, int player_index, unsigned char move) {
-    static const int DIRECTIONS[8][2] = {
-        {-1, 0}, {-1, 1}, {0, 1}, {1, 1},
-        {1, 0}, {1, -1}, {0, -1}, {-1, -1}
-    };
-
     if (move > 7) {
         game_state->players[player_index].invalid_moves++;
         return false;
@@ -331,7 +330,7 @@ bool apply_move(game_state_t *game_state, int player_index, unsigned char move) 
         return false;
     }
 
-    game_state->board[new_x * game_state->width + new_y] = (signed char)(-player_index);
+    game_state->board[new_x * game_state->width + new_y] = (signed char)(-(player_index+1));
     game_state->players[player_index].score        += (unsigned int)cell;
     game_state->players[player_index].valid_moves  += 1;
     game_state->players[player_index].x             = (unsigned short)new_x;
