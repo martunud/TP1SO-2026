@@ -4,7 +4,7 @@ DOCKER_IMAGE = agodio/itba-so-multiarch:3.1
 # Esto montará el directorio RunARM o RunAMD respectivamente, y se abrirá una terminal dentro del contenedor con ese directorio como raíz. 
 # Desde ahí, se pueden ejecutar los comandos necesarios para compilar y correr el código dentro del contenedor.
 dockerarm:
-	docker run -v "$(shell pwd)/RunARM:/root" -v "$(shell pwd)/src:/root/src" -v "$(shell pwd)/include:/root/include" -w /root --privileged -ti $(DOCKER_IMAGE)
+	docker run -v "$(shell pwd)/RunARM:/root" -v "$(shell pwd)/src:/root/src" -v "$(shell pwd)/include:/root/include" -v "$(shell pwd)/entrypoint.sh:/entrypoint.sh" -w /root --privileged -ti --entrypoint /bin/bash $(DOCKER_IMAGE) /entrypoint.sh
 
 dockeramd:
-	docker run -v "$(shell pwd)/RunAMD:/root" -v "$(shell pwd)/src:/root/src" -v "$(shell pwd)/include:/root/include" -w /root --privileged -ti $(DOCKER_IMAGE)
+	docker run -v "$(shell pwd)/RunAMD:/root" -v "$(shell pwd)/src:/root/src" -v "$(shell pwd)/include:/root/include" -v "$(shell pwd)/entrypoint.sh:/entrypoint.sh" -w /root --privileged -ti --entrypoint /bin/bash $(DOCKER_IMAGE) /entrypoint.sh

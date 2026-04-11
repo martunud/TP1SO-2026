@@ -93,7 +93,7 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
                 }
             }
         }
-        game_state ->board[x*width+y] = (signed char)-(i+1);
+        game_state ->board[x*width+y] = (signed char)(-i+1);
         game_state ->players[i].x = (unsigned short)x;
         game_state ->players[i].y = (unsigned short)y;
     }    

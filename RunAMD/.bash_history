@@ -59,3 +59,13 @@ apt-get update && apt-get install -y libncurses-dev
 ./RunAMD/ChompChamps -v ./RunAMD/bin/view -p ./RunAMD/bin/player
 make clean && make
 exit
+make clean && make
+exit
+make clean && make
+exit
+make clean && make
+exit
+make clean && make
+exit
+make clean && make
+exit
