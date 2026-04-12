@@ -13,16 +13,20 @@ OBJDIR := $(ROOT)/.obj
 MASTER_SRC := $(SRCDIR)/master/master.c \
               $(SRCDIR)/master/args.c \
               $(SRCDIR)/master/shared_memory.c \
-              $(SRCDIR)/master/create_processes.c
+              $(SRCDIR)/master/create_processes.c \
+              $(SRCDIR)/master/game_loop.c \
+			  $(SRCDIR)/master/board_init.c
 MASTER_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(MASTER_SRC))
 
 VIEW_SRC := $(SRCDIR)/view/view.c \
             $(SRCDIR)/view/view_utils.c \
-            $(SRCDIR)/master/shared_memory.c
+            $(SRCDIR)/master/shared_memory.c \
+			$(SRCDIR)/master/board_init.c
 VIEW_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(VIEW_SRC))
 
 PLAYER_SRC := $(SRCDIR)/player/player.c \
-              $(SRCDIR)/master/shared_memory.c
+              $(SRCDIR)/master/shared_memory.c \
+			  $(SRCDIR)/master/board_init.c 
 PLAYER_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(PLAYER_SRC))
 
 MASTER_BIN := $(BINDIR)/master

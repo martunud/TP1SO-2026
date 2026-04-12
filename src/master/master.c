@@ -4,7 +4,6 @@
 #include <sys/wait.h>
 #include <signal.h>
 
-int round_robin(game_state_t *game_state, sync_t *sync, int players_pipe[][2], int num_players, int *player_start, fd_set *read_fds, unsigned int delay, pid_t view_pid);
 
 static void wait_for_children(pid_t view_pid, game_state_t *game_state, int num_players){
     if(view_pid != -1){
@@ -28,125 +27,6 @@ static void wait_for_children(pid_t view_pid, game_state_t *game_state, int num_
                    i, game_state->players[i].players_name,
                    WTERMSIG(status), game_state->players[i].score);
     }
-}
-
-static void run_game_loop(game_state_t *game_state, sync_t *sync, int players_pipe[][2], int num_players, int timeout, unsigned int delay, pid_t view_pid){
-    int player_start = 0;
-    time_t last_valid_move = time(NULL);
-    bool game_over = false;
-
-    while(!game_over){
-        fd_set read_fds;
-        int max_fd = -1;
-        FD_ZERO(&read_fds);
-
-        for(int i=0 ; i<num_players; i++){
-            if(!game_state->players[i].blocked){
-                FD_SET(players_pipe[i][0], &read_fds);
-                if(players_pipe[i][0] > max_fd){
-                    max_fd = players_pipe[i][0];
-                }
-            }
-        }
-
-        if(max_fd == -1){
-            game_over = true;
-            break;
-        }
-
-        time_t elapsed = time(NULL) - last_valid_move;
-        int remaining = timeout - (int) elapsed;
-        if(remaining <= 0){
-            game_over = true;
-            break;
-        }
-
-        struct timeval tv;
-        tv.tv_sec = remaining;
-        tv.tv_usec = 0;
-
-        int ready = select(max_fd + 1, &read_fds, NULL, NULL, &tv);
-        if(ready == -1){
-            perror("select");
-            game_over = true;
-            break;
-        }else if(ready == 0){
-            game_over = true;
-            break;
-        }
-
-        int result = round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay, view_pid);
-        if(result == -1){
-            game_over = true;
-            break;
-        }
-
-        if(result == 1){
-            last_valid_move = time(NULL);
-        }
-    }
-}
-
-int round_robin(game_state_t *game_state, sync_t *sync, int players_pipe[][2], int num_players, int *player_start, fd_set *read_fds, unsigned int delay, pid_t view_pid){
-
-     for(int offset = 0; offset < num_players; offset++){
-        int i = (*player_start + offset) % num_players;
-
-        if(game_state->players[i].blocked) continue; 
-        if(!FD_ISSET(players_pipe[i][0], read_fds)) continue; 
-
-        unsigned char move; 
-        ssize_t n = read(players_pipe[i][0], &move, 1); 
-
-        if(n==0){
-            game_state->players[i].blocked = true; 
-            *player_start = (i + 1) % num_players;
-            return 0; 
-        }else if(n==-1){
-            perror("read pipe"); 
-            return -1; 
-        }
-
-        //writer lock antes de modificar el estado
-        if(sem_wait(&sync->writer_mutex) == -1){
-            perror("sem_wait writer_mutex");
-            return -1;
-        }
-
-        if(sem_wait(&sync->state_mutex) == -1){
-            perror("sem_wait state_mutex");
-            sem_post(&sync->writer_mutex);
-            return -1;
-        }
-
-        if(sem_post(&sync->writer_mutex) == -1){
-            perror("sem_post writer_mutex");
-            sem_post(&sync->state_mutex);
-            return -1;
-        }
-
-        bool valid = apply_move(game_state, i , move); 
-
-        if(sem_post(&sync->state_mutex) == -1){
-            perror("sem_post state_mutex");
-            return -1;
-        }
-        //fin de writer lock
-
-        if (valid && view_pid != -1){
-        sem_post(&sync->state_changed); 
-        sem_wait(&sync->view_done); 
-        usleep(delay * 1000);
-        }
-
-        sem_post(&sync->move_processed[i]); 
-
-        *player_start = (i + 1) % num_players; 
-        return valid ? 1 : 0; 
-
-    }   
-
-    return 0; 
 }
 
 // determinar y mostrar el ganador 

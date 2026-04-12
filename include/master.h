@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <sys/select.h>
+#include <game_loop.h>
 
 //Para la shared memory -> en man shm_open
 #include <sys/mman.h>

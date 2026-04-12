@@ -74,59 +74,24 @@ game_state_t * create_game_shm(unsigned short width, unsigned short height){
     return buf;
 }
 
-void init_game_state(game_state_t * game_state , unsigned short width, unsigned short height, unsigned char players_amount, player_t players[9], unsigned int * seed){
-    game_state ->width = width; 
-    game_state ->height = height; 
-    game_state ->players_amount = players_amount; 
-
-    for(int i=0 ; i<players_amount; i++){
-        game_state ->players[i] = players[i]; 
-    }
-
-    srand(*seed); //va a ser time(NULL) si no se paso el arg de la seed y si no la que se paso por linea de comando
-
-    for(int i=0 ; i<height ; i++){
-        for(int j=0 ; j<width ; j++){
-            game_state->board[i*width + j]= rand() % 9 + 1 ; 
-        }
-    }
-
-    // Inicializar jugadores en el tablero en posiciones distintas.
-    for(int i = 0 ; i<players_amount; i++){
-        // dividir el tablero en 'players_amount' sectores horizontales
-        int sector_h = height / players_amount;
-        int row_start = i * sector_h;
-        int row_end   = (i == players_amount - 1) ? height : row_start + sector_h;
-
-        // intentar el centro del sector primero, si está ocupado buscar alrededor
-        int center_x = row_start + (row_end - row_start) / 2;
-        int center_y = width / 2;
-
-        int x = -1, y = -1;
-        // búsqueda en espiral desde el centro del sector
-        for(int radius = 0; radius <= (int)(height + width) && x == -1; radius++){
-            for(int dx = -radius; dx <= radius && x == -1; dx++){
-                for(int dy = -radius; dy <= radius && x == -1; dy++){
-                    if(abs(dx) != radius && abs(dy) != radius) continue;
-                    int nx = center_x + dx;
-                    int ny = center_y + dy;
-                    if(nx >= 0 && nx < height && ny >= 0 && ny < width
-                    && game_state->board[nx * width + ny] > 0){
-                    x = nx;
-                    y = ny;
-                    }
-                }
-            }
-        }
-        game_state ->board[x*width+y] = (signed char)(-i);
-        game_state ->players[i].x = (unsigned short)x;
-        game_state ->players[i].y = (unsigned short)y;
-    }
-
-    for(int i = 0; i < players_amount; i++){
+void init_game_state(game_state_t *game_state, unsigned short width, unsigned short height, unsigned char players_amount, player_t players[9], unsigned int *seed) {
+    game_state->width           = width;
+    game_state->height          = height;
+    game_state->players_amount  = players_amount;
+ 
+    for (int i = 0; i < players_amount; i++)
+        game_state->players[i] = players[i];
+ 
+    srand(*seed);
+    fill_board(game_state, width, height);
+ 
+    for (int i = 0; i < players_amount; i++)
+        place_player(game_state, i, width, height, players_amount);
+ 
+    for (int i = 0; i < players_amount; i++)
         update_blocked_status(game_state, i);
-    }
 }
+
 // inicializa una struct player_t por cada jugador que participe, sirve para hacer el arreglo de structs de players que pide init_game_state
 void init_players(player_t players[], char *player_paths[], int num_players){
     for(int i = 0; i < num_players; i++){

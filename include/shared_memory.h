@@ -2,6 +2,7 @@
 #define SHARED_MEMORY_H
 
 #include <master.h>
+#include <board_init.h>
 
 game_state_t * create_game_shm(unsigned short width, unsigned short height);
 
