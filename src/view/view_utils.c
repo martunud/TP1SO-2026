@@ -365,8 +365,8 @@ void render_final_frame(view_context_t *ctx, const game_state_t *game_state){
     draw_final_summary(game_state, board_height_chars(game_state->height) + 3);
     attron(A_BOLD);
     mvprintw(board_height_chars(game_state->height) + game_state->players_amount + 6, 0,
-             "Juego terminado. Presiona cualquier tecla para salir...");
+             "Juego terminado.");
     attroff(A_BOLD);
     refresh();
-    getch();
+    sleep(5);
 }
