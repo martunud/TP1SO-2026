@@ -75,7 +75,13 @@ static void run_game_loop(game_state_t *game_state, sync_t *sync, int players_pi
             break;
         }
 
-        if(round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay, view_pid) == 1){
+        int result = round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay, view_pid);
+        if(result == -1){
+            game_over = true;
+            break;
+        }
+
+        if(result == 1){
             last_valid_move = time(NULL);
         }
     }

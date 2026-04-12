@@ -7,6 +7,31 @@ static const int DIRECTIONS[8][2] = {
     {1, 0}, {1, -1}, {0, -1}, {-1, -1}
 };
 
+static bool player_can_move(const game_state_t *game_state, int player_index){
+    int x = game_state->players[player_index].x;
+    int y = game_state->players[player_index].y;
+
+    for(int direction = 0; direction < 8; direction++){
+        int new_x = x + DIRECTIONS[direction][0];
+        int new_y = y + DIRECTIONS[direction][1];
+
+        if(new_x < 0 || new_x >= game_state->height ||
+           new_y < 0 || new_y >= game_state->width){
+            continue;
+        }
+
+        if(game_state->board[new_x * game_state->width + new_y] > 0){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void update_blocked_status(game_state_t *game_state, int player_index){
+    game_state->players[player_index].blocked = !player_can_move(game_state, player_index);
+}
+
 static size_t game_state_size(unsigned short width, unsigned short height){
     return sizeof(game_state_t) + width * height * sizeof(signed char);
 }
@@ -93,10 +118,14 @@ void init_game_state(game_state_t * game_state , unsigned short width, unsigned 
                 }
             }
         }
-        game_state ->board[x*width+y] = (signed char)(-i+1);
+        game_state ->board[x*width+y] = (signed char)(-i);
         game_state ->players[i].x = (unsigned short)x;
         game_state ->players[i].y = (unsigned short)y;
-    }    
+    }
+
+    for(int i = 0; i < players_amount; i++){
+        update_blocked_status(game_state, i);
+    }
 }
 // inicializa una struct player_t por cada jugador que participe, sirve para hacer el arreglo de structs de players que pide init_game_state
 void init_players(player_t players[], char *player_paths[], int num_players){
@@ -312,6 +341,7 @@ int unlink_sync_shm(void){
 bool apply_move(game_state_t *game_state, int player_index, unsigned char move) {
     if (move > 7) {
         game_state->players[player_index].invalid_moves++;
+        update_blocked_status(game_state, player_index);
         return false;
     }
 
@@ -321,20 +351,23 @@ bool apply_move(game_state_t *game_state, int player_index, unsigned char move) 
     if (new_x < 0 || new_x >= game_state->height ||
         new_y < 0 || new_y >= game_state->width) {
         game_state->players[player_index].invalid_moves++;
+        update_blocked_status(game_state, player_index);
         return false;
     }
 
     signed char cell = game_state->board[new_x * game_state->width + new_y];
     if (cell <= 0) {
         game_state->players[player_index].invalid_moves++;
+        update_blocked_status(game_state, player_index);
         return false;
     }
 
-    game_state->board[new_x * game_state->width + new_y] = (signed char)(-(player_index+1));
+    game_state->board[new_x * game_state->width + new_y] = (signed char)(-player_index);
     game_state->players[player_index].score        += (unsigned int)cell;
     game_state->players[player_index].valid_moves  += 1;
     game_state->players[player_index].x             = (unsigned short)new_x;
     game_state->players[player_index].y             = (unsigned short)new_y;
+    update_blocked_status(game_state, player_index);
 
     return true;
 }
