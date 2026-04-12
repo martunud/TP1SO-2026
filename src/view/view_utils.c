@@ -5,12 +5,12 @@
 
 static const short PLAYER_TEXT_COLORS[MAX_PLAYERS] = {
     COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE,
-    COLOR_WHITE, COLOR_RED, COLOR_BLACK, COLOR_BLACK
+    COLOR_WHITE, COLOR_RED, COLOR_MAGENTA, COLOR_CYAN
 };
 
 static const short PLAYER_BG_COLORS[MAX_PLAYERS] = {
     COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE,
-    COLOR_WHITE, COLOR_RED, COLOR_BLACK, COLOR_BLACK
+    COLOR_WHITE, COLOR_RED, COLOR_MAGENTA, COLOR_CYAN
 };
 
 static void init_color_pairs(void){
@@ -106,12 +106,20 @@ static void draw_board(view_context_t *ctx, const game_state_t *game_state){
             int current_player = player_at(game_state, x, y);
             int trail_player = ctx->trail[y * game_state->width + x];
 
-            if(ctx->colors_enabled && current_player >= 0){
+            if (ctx->colors_enabled && current_player >= 0) {
                 draw_cell_fill(content_row, col, 20 + current_player);
-            } else if(ctx->colors_enabled && trail_player > 0){
+            } else if (ctx->colors_enabled && trail_player > 0) {
                 draw_cell_fill(content_row, col, 19 + trail_player);
             } else {
-                draw_cell_number(content_row, col, game_state->board[y * game_state->width + x]);
+                signed char cell = game_state->board[y * game_state->width + x];
+                if (cell > 0) {
+                    draw_cell_number(content_row, col, cell);
+                } else {
+                    int owner = -(int)cell;
+                    if (ctx->colors_enabled && owner >= 0 && owner < game_state->players_amount) {
+                        draw_cell_fill(content_row, col, 20 + owner);
+                    }
+                }
             }
 
             mvaddch(content_row, col + CELL_INNER_WIDTH, ACS_VLINE);
