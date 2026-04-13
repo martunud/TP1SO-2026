@@ -64,6 +64,7 @@ void init_players(player_t players[], char *player_paths[], int num_players) {
         players[i].valid_moves = 0;
         players[i].invalid_moves = 0;
         players[i].blocked = false;
+        players[i].pid = 0;
     }
 }
 
