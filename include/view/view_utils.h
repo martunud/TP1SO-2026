@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include <master.h>
+#include <game_state.h>
 
 #if __has_include(<ncurses.h>)
 #include <ncurses.h>
@@ -24,9 +24,6 @@ typedef struct {
     unsigned short height;
     uint8_t *trail;
 } view_context_t;
-
-int view_reader_enter(sync_t *sync);
-int view_reader_exit(sync_t *sync);
 
 int init_view_context(view_context_t *ctx, unsigned short width, unsigned short height);
 void destroy_view_context(view_context_t *ctx);

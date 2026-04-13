@@ -11,22 +11,29 @@ BINDIR := $(ROOT)/bin
 OBJDIR := $(ROOT)/.obj
 
 MASTER_SRC := $(SRCDIR)/master/master.c \
-              $(SRCDIR)/master/args.c \
-              $(SRCDIR)/master/shared_memory.c \
-              $(SRCDIR)/master/create_processes.c \
-              $(SRCDIR)/master/game_loop.c \
-			  $(SRCDIR)/master/board_init.c
+	              $(SRCDIR)/master/args.c \
+	              $(SRCDIR)/master/board_init.c \
+	              $(SRCDIR)/master/finalize.c \
+	              $(SRCDIR)/master/game.c \
+	              $(SRCDIR)/master/game_loop.c \
+	              $(SRCDIR)/master/results.c \
+	              $(SRCDIR)/ipc/proc.c \
+	              $(SRCDIR)/ipc/shm.c \
+	              $(SRCDIR)/ipc/sync.c
 MASTER_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(MASTER_SRC))
 
 VIEW_SRC := $(SRCDIR)/view/view.c \
-            $(SRCDIR)/view/view_utils.c \
-            $(SRCDIR)/master/shared_memory.c \
-			$(SRCDIR)/master/board_init.c
+	            $(SRCDIR)/view/view_loop.c \
+	            $(SRCDIR)/view/view_utils.c \
+	            $(SRCDIR)/ipc/shm.c \
+	            $(SRCDIR)/ipc/sync.c
 VIEW_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(VIEW_SRC))
 
 PLAYER_SRC := $(SRCDIR)/player/player.c \
-              $(SRCDIR)/master/shared_memory.c \
-			  $(SRCDIR)/master/board_init.c 
+	              $(SRCDIR)/player/runtime.c \
+	              $(SRCDIR)/player/strategy.c \
+	              $(SRCDIR)/ipc/shm.c \
+	              $(SRCDIR)/ipc/sync.c
 PLAYER_OBJ := $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(PLAYER_SRC))
 
 MASTER_BIN := $(BINDIR)/master
@@ -76,16 +83,16 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c | dirs
 	$(CC) $(CFLAGS) -c $< -o $@
 
 dirs:
-	@mkdir -p $(BINDIR) $(OBJDIR) $(OBJDIR)/master $(OBJDIR)/player $(OBJDIR)/view
+		@mkdir -p $(BINDIR) $(OBJDIR) $(OBJDIR)/ipc $(OBJDIR)/master $(OBJDIR)/player $(OBJDIR)/view
 
 clean:
-	@rm -rf $(OBJDIR) $(MASTER_BIN) $(VIEW_BIN) $(PLAYER_BIN)
-	@echo "Limpio."
+	@rm -rf $(OBJDIR) $(MASTER_BIN) $(VIEW_BIN) $(PLAYER_BIN) ./*.o
+	@echo "Clean."
 
 clean-shm: ensure-docker
-	@echo "Limpiando memoria compartida..."
+	@echo "Cleaning shared memory..."
 	@-rm -f /dev/shm/game_state /dev/shm/game_sync
-	@echo "Memoria compartida limpiada."
+	@echo "Shared memory cleaned."
 
 run-master: ensure-docker build
 	@test "$(P)" -ge 1 && test "$(P)" -le 9 || (echo "P must be between 1 and 9" && exit 1)
@@ -113,28 +120,28 @@ run-master-noview: ensure-docker build
 run: run-master
 
 help:
-	@echo "Uso esperado:"
-	@echo "  1. Desde la maquina host: make dockerarm   o   make dockeramd"
-	@echo "  2. Ya dentro del contenedor: make build"
-	@echo "  3. Para correr: make run-master P=2"
+	@echo "Expected usage:"
+	@echo "  1. From the host machine: make dockerarm   or   make dockeramd"
+	@echo "  2. Once inside the container: make build"
+	@echo "  3. To run: make run-master P=2"
 	@echo ""
 	@echo "Targets:"
-	@echo "  build             - Compila master, view y player"
-	@echo "  run-master        - Ejecuta el master propio con vista"
-	@echo "  run-master-noview - Ejecuta el master propio sin vista"
-	@echo "  run               - Alias de run-master"
-	@echo "  clean             - Limpia binarios y objetos"
-	@echo "  clean-shm         - Limpia memoria compartida en /dev/shm"
+	@echo "  build             - Builds master, view, and player"
+	@echo "  run-master        - Runs the local master with view"
+	@echo "  run-master-noview - Runs the local master without view"
+	@echo "  run               - Alias for run-master"
+	@echo "  clean             - Removes binaries and object files"
+	@echo "  clean-shm         - Removes shared memory from /dev/shm"
 	@echo ""
-	@echo "Variables configurables:"
-	@echo "  W=10              - Ancho del tablero"
-	@echo "  H=10              - Alto del tablero"
-	@echo "  P=2               - Cantidad de jugadores"
-	@echo "  D=200             - Delay entre movimientos en ms"
-	@echo "  T=10              - Timeout en segundos"
-	@echo "  S=                - Semilla"
+	@echo "Configurable variables:"
+	@echo "  W=10              - Board width"
+	@echo "  H=10              - Board height"
+	@echo "  P=2               - Number of players"
+	@echo "  D=200             - Delay between moves in ms"
+	@echo "  T=10              - Timeout in seconds"
+	@echo "  S=                - Random seed"
 	@echo ""
-	@echo "Ejemplos:"
+	@echo "Examples:"
 	@echo "  make build"
 	@echo "  make run-master P=2"
 	@echo "  make run-master P=3 W=12 H=12"

@@ -1,11 +1,10 @@
-#include <args.h>
+#include <master/args.h>
 
 int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *height, unsigned int *delay, int *timeout, unsigned int *seed, char **view, char *player[MAX_PLAYERS], int *num_players ){
     int opt;
     char *endptr;
     unsigned long val;
 
-    //defaults
     *width = 10;
     *height = 10;
     *delay = 200;
@@ -14,7 +13,7 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
     *view = NULL;
     *num_players = 0;
 
-    while((opt = getopt(argc, argv, "w:h:d:t:s:v:p:")) != -1){ //distinto a -1 pues getopt() retorna -1 al terminar
+    while((opt = getopt(argc, argv, "w:h:d:t:s:v:p:")) != -1){
         switch(opt){
             case'w':
                 val = strtoul(optarg, &endptr, 10);
@@ -35,7 +34,7 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
             case 'd':
                 val = strtoul(optarg, &endptr, 10);
                 if (*endptr != '\0') {
-                    fprintf(stderr, "Invalid integer %s\n", optarg); // corregir el msj de error una vez podamos probar la flag view
+                    fprintf(stderr, "Invalid integer %s\n", optarg);
                     return -1;
                 }   
                 *delay = (unsigned int) val;        
@@ -57,21 +56,20 @@ int parse_args(int argc, char *argv[], unsigned short *width, unsigned short *he
                 *seed = (unsigned int) val;
                 break;
             case 'v':
-                *view = optarg ; //quiero directo el puntero al string
+                *view = optarg;
                 break;
             case 'p':
                 if(*num_players >= MAX_PLAYERS){
-                    fprintf(stderr, "Error: At most %d players can be specified using -p.\n", MAX_PLAYERS); 
+                    fprintf(stderr, "Error: at most %d players can be specified using -p.\n", MAX_PLAYERS); 
                     return -1;
                 }
                 player[(*num_players)++] = optarg; 
-                // ahora consumimos "player2", "player3", etc. manualmente
                 while(optind < argc && argv[optind][0] != '-'){
                     if(*num_players >= MAX_PLAYERS){
-                    fprintf(stderr, "Error: At most %d players.\n", MAX_PLAYERS);
+                    fprintf(stderr, "Error: at most %d players.\n", MAX_PLAYERS);
                     return -1;
                     }
-                    player[(*num_players)++] = argv[optind++];  // optind avanza manualmente
+                    player[(*num_players)++] = argv[optind++];
                 }
                 break;
             case '?':

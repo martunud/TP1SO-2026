@@ -1,25 +1,25 @@
 # TP1SO-2026 — ChompChamps
 
-## Decisiones de diseño
-- **Distribución de jugadores**: sectores horizontales equidistantes para garantizar margen similar.
-- **Round-robin**: se mantiene `player_start` entre iteraciones para no favorecer siempre al jugador 0.
-- **Lectores-escritores**: se implementó la variante que previene inanición del escritor (master) usando `writer_mutex`, `state_mutex`, `readers_count_mutex` y `readers_count`.
-- **Sin vista**: si no se pasa `-v`, el master omite las notificaciones a la vista.
+## Design Decisions
+- **Player distribution**: evenly spaced horizontal sectors to give each player a similar starting margin.
+- **Round-robin**: `player_start` is preserved between iterations so player 0 is not always favored.
+- **Readers-writer sync**: the implementation uses a writer-starvation-safe variant with `writer_mutex`, `state_mutex`, `readers_count_mutex`, and `readers_count`.
+- **Headless mode**: if `-v` is not provided, the master skips view notifications.
 
-## Compilación y ejecución
-# Abrir el contenedor (ARM o AMD según tu arquitectura):
-make dockerarm   # o make dockeramd
+## Build and Run
+# Open the container (ARM or AMD depending on your architecture):
+make dockerarm   # or make dockeramd
 
-# Dentro del contenedor:
+# Inside the container:
 make
 ./bin/master -w 20 -h 20 -t 10 -v ./bin/view -p ./bin/player ./bin/player
 
-## Rutas para el torneo
-- Vista:    ./bin/view
-- Jugador:  ./bin/player
+## Tournament Paths
+- View:    ./bin/view
+- Player:  ./bin/player
 
-## Limitaciones
-- El jugador no implementa lookahead profundo; toma decisiones greedy a 1 paso.
+## Limitations
+- The player does not implement deep lookahead; it uses a 1-step greedy strategy.
 
-## Problemas encontrados
+## Known Issues
 - 

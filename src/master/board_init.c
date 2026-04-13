@@ -1,4 +1,4 @@
-#include <board_init.h>
+#include <master/board_init.h>
 #include <stdlib.h>  
 
 void fill_board(game_state_t *game_state, unsigned short width, unsigned short height) {

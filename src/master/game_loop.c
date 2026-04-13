@@ -1,5 +1,11 @@
-#include <game_loop.h>
-#include <shared_memory.h>
+#include <master/game_loop.h>
+
+#include <master/game.h>
+
+#include <stdio.h>
+#include <time.h>
+#include <unistd.h>
+
 #include <sys/select.h>
 
 static int read_player_move(game_state_t *game_state, int player_pipes[][2], int i, unsigned char *move) {
@@ -84,7 +90,7 @@ static int round_robin(game_state_t *game_state, sync_t *sync, int player_pipes[
         int r = read_player_move(game_state, player_pipes, i, &move);
         if (r <= 0) {
             *player_start = (i + 1) % num_players;
-            return r; // 0 = pipe cerrado, -1 = error
+            return r;
         }
 
         int valid = locked_apply_move(game_state, sync, i, move);
@@ -94,7 +100,7 @@ static int round_robin(game_state_t *game_state, sync_t *sync, int player_pipes[
 
         sem_post(&sync->move_processed[i]);
         *player_start = (i + 1) % num_players;
-        return valid; // 1 = válido, 0 = inválido
+        return valid;
     }
     return 0;
 }
@@ -106,17 +112,17 @@ void run_game_loop(game_state_t *game_state, sync_t *sync, int players_pipe[][2]
     while (true) {
         fd_set read_fds;
         int max_fd = build_fd_set(game_state, players_pipe, num_players, &read_fds);
-        if (max_fd == -1) break; // todos bloqueados
+        if (max_fd == -1) break;
 
         int secs = remaining_timeout(last_valid_move, timeout);
-        if (secs == -1) break; // timeout expirado
+        if (secs == -1) break;
 
         struct timeval tv = { .tv_sec = secs, .tv_usec = 0 };
         int ready = select(max_fd + 1, &read_fds, NULL, NULL, &tv);
-        if (ready <= 0) break; // timeout o error
+        if (ready <= 0) break;
 
         int result = round_robin(game_state, sync, players_pipe, num_players, &player_start, &read_fds, delay, view_pid);
-        if (result == -1) break; // error fatal
+        if (result == -1) break;
         if (result == 1)  last_valid_move = time(NULL);
     }
 }

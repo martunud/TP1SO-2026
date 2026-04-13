@@ -1,7 +1,9 @@
 #include <view/view_utils.h>
 
 #include <errno.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static const short PLAYER_TEXT_COLORS[MAX_PLAYERS] = {
     COLOR_CYAN, COLOR_MAGENTA, COLOR_YELLOW, COLOR_GREEN, COLOR_BLUE,
@@ -39,7 +41,7 @@ static int total_ui_height(const game_state_t *game_state) {
     return 1 + 1 + board_height_chars(game_state->height) + 2 + game_state->players_amount + 2;
 }
 
-static bool terminal_too_small(view_context_t *ctx, const game_state_t *game_state) {
+static bool terminal_too_small(const game_state_t *game_state) {
     int rows, cols;
     getmaxyx(stdscr, rows, cols);
     return cols < board_width_chars(game_state->width) || rows < total_ui_height(game_state);
@@ -76,10 +78,6 @@ static void draw_cell_number(int row, int col, signed char value) {
     attroff(COLOR_PAIR(2));
 }
 
-// ── draw_board helpers ────────────────────────────────────────────────────────
-
-/* Renderiza el contenido de una celda (x, y) en la fila dada.
- * Prioridad: jugador activo > rastro > número de recompensa > celda capturada. */
 static void draw_cell(view_context_t *ctx, const game_state_t *game_state, int x, int y, int row) {
     int col           = 1 + x * CELL_WIDTH;
     int current_player = player_at(game_state, x, y);
@@ -96,8 +94,6 @@ static void draw_cell(view_context_t *ctx, const game_state_t *game_state, int x
         draw_cell_fill(row, col, 20 + (-(int)cell));
 }
 
-/* Renderiza una fila completa del tablero: borde izquierdo, celdas y
- * separadores verticales entre ellas. */
 static void draw_board_row(view_context_t *ctx, const game_state_t *game_state, int y, int content_row) {
     mvaddch(content_row, 0, ACS_VLINE);
     for (int x = 0; x < game_state->width; x++) {
@@ -106,10 +102,9 @@ static void draw_board_row(view_context_t *ctx, const game_state_t *game_state, 
     }
 }
 
-/* Renderiza el tablero completo: título, bordes y contenido celda por celda. */
 static void draw_board(view_context_t *ctx, const game_state_t *game_state) {
     attron(A_BOLD);
-    mvprintw(0, 0, "TABLERO (%hux%hu)", game_state->width, game_state->height);
+    mvprintw(0, 0, "BOARD (%hux%hu)", game_state->width, game_state->height);
     attroff(A_BOLD);
 
     draw_horizontal_border(1, game_state->width, ACS_ULCORNER, ACS_TTEE, ACS_URCORNER);
@@ -127,13 +122,11 @@ static void draw_board(view_context_t *ctx, const game_state_t *game_state) {
     }
 }
 
-// ── panels ────────────────────────────────────────────────────────────────────
-
 static void draw_players_panel(const game_state_t *game_state) {
     int row = board_height_chars(game_state->height) + 3;
 
     attron(A_BOLD);
-    mvprintw(row++, 0, "JUGADORES (%u):", game_state->players_amount);
+    mvprintw(row++, 0, "PLAYERS (%u):", game_state->players_amount);
     attroff(A_BOLD);
 
     for (int i = 0; i < game_state->players_amount; i++) {
@@ -170,13 +163,11 @@ static void draw_footer(const game_state_t *game_state, bool finished) {
 static void draw_too_small_message(const game_state_t *game_state) {
     clear();
     attron(A_BOLD | COLOR_PAIR(4));
-    mvprintw(0, 0, "Terminal demasiado pequena");
+    mvprintw(0, 0, "Terminal too small");
     attroff(A_BOLD | COLOR_PAIR(4));
-    mvprintw(2, 0, "Tablero requerido: %dx%d", board_width_chars(game_state->width), board_height_chars(game_state->height));
-    mvprintw(3, 0, "Agrandar la ventana o reducir el tablero.");
+    mvprintw(2, 0, "Required board size: %dx%d", board_width_chars(game_state->width), board_height_chars(game_state->height));
+    mvprintw(3, 0, "Resize the window or reduce the board size.");
 }
-
-// ── resumen final ─────────────────────────────────────────────────────────────
 
 static void draw_player_summary_row(const game_state_t *game_state, int i, int row) {
     int base_pair = 10 + i;
@@ -202,8 +193,8 @@ static void draw_player_summary_row(const game_state_t *game_state, int i, int r
 
 static void draw_final_summary(const game_state_t *game_state, int start_row) {
     attron(A_BOLD);
-    mvprintw(start_row++, 0, "RESUMEN FINAL");
-    mvprintw(start_row++, 0, "idx   nombre           score   validas   invalidas   estado");
+    mvprintw(start_row++, 0, "FINAL SUMMARY");
+    mvprintw(start_row++, 0, "idx   name             score   valid     invalid     status");
     attroff(A_BOLD);
 
     for (int i = 0; i < game_state->players_amount; i++)
@@ -211,8 +202,8 @@ static void draw_final_summary(const game_state_t *game_state, int start_row) {
 }
 
 static void print_headless_summary(const game_state_t *game_state) {
-    fprintf(stderr, "=== RESUMEN FINAL ===\n");
-    fprintf(stderr, "idx   nombre           score   validas   invalidas   estado\n");
+    fprintf(stderr, "=== FINAL SUMMARY ===\n");
+    fprintf(stderr, "idx   name             score   valid     invalid     status\n");
     for (int i = 0; i < game_state->players_amount; i++) {
         fprintf(stderr, "%-5d %-15s %-7u %-9u %-11u %s\n",
                 i,
@@ -223,39 +214,6 @@ static void print_headless_summary(const game_state_t *game_state) {
                 game_state->players[i].blocked ? "BLOCKED" : "OK");
     }
 }
-
-// ── sincronización lectores ───────────────────────────────────────────────────
-
-int view_reader_enter(sync_t *sync) {
-    if (sem_wait(&sync->writer_mutex) == -1)        return -1;
-    if (sem_post(&sync->writer_mutex) == -1)        return -1;
-    if (sem_wait(&sync->readers_count_mutex) == -1) return -1;
-
-    sync->readers_count++;
-    if (sync->readers_count == 1 && sem_wait(&sync->state_mutex) == -1) {
-        sync->readers_count--;
-        sem_post(&sync->readers_count_mutex);
-        return -1;
-    }
-
-    if (sem_post(&sync->readers_count_mutex) == -1) return -1;
-    return 0;
-}
-
-int view_reader_exit(sync_t *sync) {
-    if (sem_wait(&sync->readers_count_mutex) == -1) return -1;
-
-    sync->readers_count--;
-    if (sync->readers_count == 0 && sem_post(&sync->state_mutex) == -1) {
-        sem_post(&sync->readers_count_mutex);
-        return -1;
-    }
-
-    if (sem_post(&sync->readers_count_mutex) == -1) return -1;
-    return 0;
-}
-
-// ── contexto de vista ─────────────────────────────────────────────────────────
 
 int init_view_context(view_context_t *ctx, unsigned short width, unsigned short height) {
     memset(ctx, 0, sizeof(*ctx));
@@ -308,12 +266,10 @@ void update_player_trail(view_context_t *ctx, const game_state_t *game_state) {
     }
 }
 
-// ── render público ────────────────────────────────────────────────────────────
-
 void render_game_frame(view_context_t *ctx, const game_state_t *game_state, bool finished) {
     if (ctx->headless) return;
 
-    if (terminal_too_small(ctx, game_state)) {
+    if (terminal_too_small(game_state)) {
         draw_too_small_message(game_state);
         refresh();
         return;
@@ -334,9 +290,9 @@ void render_final_frame(view_context_t *ctx, const game_state_t *game_state) {
 
     clear();
 
-    if (terminal_too_small(ctx, game_state)) {
+    if (terminal_too_small(game_state)) {
         draw_too_small_message(game_state);
-        mvprintw(5, 0, "Juego terminado.");
+        mvprintw(5, 0, "Game finished.");
         refresh();
         return;
     }
@@ -344,7 +300,7 @@ void render_final_frame(view_context_t *ctx, const game_state_t *game_state) {
     draw_board(ctx, game_state);
     draw_final_summary(game_state, board_height_chars(game_state->height) + 3);
     attron(A_BOLD);
-    mvprintw(board_height_chars(game_state->height) + game_state->players_amount + 6, 0, "Juego terminado.");
+    mvprintw(board_height_chars(game_state->height) + game_state->players_amount + 6, 0, "Game finished.");
     attroff(A_BOLD);
     refresh();
     sleep(5);
