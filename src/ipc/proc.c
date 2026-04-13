@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <ipc/shm.h>
+
 static void close_player_pipe_pair(int pipefd[2]) {
     close(pipefd[0]);
     close(pipefd[1]);
@@ -33,7 +35,7 @@ int init_view_players(unsigned short width, unsigned short height, unsigned char
 
     for (int i = 0; i < players_amount; i++) {
         pid_t player_pid = player_fork(width, height, player_paths[i], player_pipes,
-                                       players_amount, i);
+                                       players_amount, i, game_state);
         if (player_pid < 0) {
             for (int j = 0; j < players_amount; j++) {
                 close_player_pipe_pair(player_pipes[j]);
@@ -41,7 +43,6 @@ int init_view_players(unsigned short width, unsigned short height, unsigned char
             return -1;
         }
 
-        game_state->players[i].pid = player_pid;
         close(player_pipes[i][1]);
     }
 
@@ -75,13 +76,17 @@ pid_t view_fork(unsigned short width, unsigned short height, char *view_path) {
 }
 
 pid_t player_fork(unsigned short width, unsigned short height, char *player_path,
-                  int player_pipes[][2], int num_players, int player_index) {
+                  int player_pipes[][2], int num_players, int player_index,
+                  game_state_t *game_state) {
     pid_t pid_player = fork();
     if (pid_player == 0) {
-        char *args[5];
+        char *args[4];
         char buf_w[6];
         char buf_h[6];
-        char buf_idx[4];
+
+        /* Write our own PID into shared memory so the player process
+         * can locate its slot by calling find_player_index(). */
+        game_state->players[player_index].pid = getpid();
 
         for (int i = 0; i < num_players; i++) {
             if (i == player_index) {
@@ -97,13 +102,11 @@ pid_t player_fork(unsigned short width, unsigned short height, char *player_path
 
         snprintf(buf_w, sizeof(buf_w), "%hu", width);
         snprintf(buf_h, sizeof(buf_h), "%hu", height);
-        snprintf(buf_idx, sizeof(buf_idx), "%d", player_index);
 
         args[0] = player_path;
         args[1] = buf_w;
         args[2] = buf_h;
-        args[3] = buf_idx;
-        args[4] = NULL;
+        args[3] = NULL;
 
         execv(player_path, args);
         perror("execv player");

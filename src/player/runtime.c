@@ -28,16 +28,28 @@ static int write_move(unsigned char move) {
 }
 
 int parse_player_args(int argc, char *argv[], unsigned short *width,
-                      unsigned short *height, int *idx) {
-    if (argc != 4) {
-        fprintf(stderr, "Error: expected 3 arguments (width height index)\n");
+                      unsigned short *height) {
+    if (argc != 3) {
+        fprintf(stderr, "Error: expected 2 arguments (width height)\n");
         return -1;
     }
 
-    *width = (unsigned short)atoi(argv[1]);
+    *width  = (unsigned short)atoi(argv[1]);
     *height = (unsigned short)atoi(argv[2]);
-    *idx = atoi(argv[3]);
     return 0;
+}
+
+int find_player_index(const game_state_t *game_state) {
+    pid_t my_pid = getpid();
+
+    for (int i = 0; i < game_state->players_amount; i++) {
+        if (game_state->players[i].pid == my_pid) {
+            return i;
+        }
+    }
+
+    fprintf(stderr, "Error: could not find player index for PID %d\n", (int)my_pid);
+    return -1;
 }
 
 int run_player_loop(game_state_t *game_state, sync_t *sync, int idx) {
@@ -55,11 +67,11 @@ int run_player_loop(game_state_t *game_state, sync_t *sync, int idx) {
             return -1;
         }
 
-        bool ended = game_state->ended;
+        bool ended   = game_state->ended;
         bool blocked = game_state->players[idx].blocked;
-        unsigned short x = game_state->players[idx].x;
-        unsigned short y = game_state->players[idx].y;
-        unsigned char move = pick_direction(game_state, x, y);
+        unsigned short x    = game_state->players[idx].x;
+        unsigned short y    = game_state->players[idx].y;
+        unsigned char  move = pick_direction(game_state, x, y);
 
         if (reader_exit(sync) == -1) {
             perror("reader_exit");

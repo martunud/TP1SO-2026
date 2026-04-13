@@ -4,8 +4,8 @@
 #include <game_state.h>
 #include <game_sync.h>
 
-int parse_player_args(int argc, char *argv[], unsigned short *width,
-                      unsigned short *height, int *idx);
+int parse_player_args(int argc, char *argv[], unsigned short *width, unsigned short *height);
+int find_player_index(const game_state_t *game_state);
 int run_player_loop(game_state_t *game_state, sync_t *sync, int idx);
 
 #endif

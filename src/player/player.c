@@ -6,16 +6,15 @@
 
 int main(int argc, char *argv[]) {
     unsigned short width, height;
-    int idx;
 
-    if (parse_player_args(argc, argv, &width, &height, &idx) == -1)
+    if (parse_player_args(argc, argv, &width, &height) == -1)
         return 1;
 
     game_state_t *buf_game = open_game_shm(width, height);
     sync_t       *buf_sync = open_shm_sync();
 
-    if (idx < 0 || idx >= buf_game->players_amount) {
-        fprintf(stderr, "Invalid player index: %d\n", idx);
+    int idx = find_player_index(buf_game);
+    if (idx == -1) {
         close_game_shm(buf_game, width, height);
         close_shm_sync(buf_sync);
         return 1;
