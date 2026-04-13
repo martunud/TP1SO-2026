@@ -40,6 +40,12 @@ MASTER_BIN := $(BINDIR)/master
 VIEW_BIN   := $(BINDIR)/view
 PLAYER_BIN := $(BINDIR)/player
 
+CLEAN_BINS := $(MASTER_BIN) $(VIEW_BIN) $(PLAYER_BIN) \
+	./RunAMD/bin/master ./RunAMD/bin/view ./RunAMD/bin/player \
+	./RunARM/bin/master ./RunARM/bin/view ./RunARM/bin/player \
+	./RunAMD/master ./RunAMD/view ./RunAMD/player \
+	./RunARM/master ./RunARM/view ./RunARM/player
+
 W ?= 10
 H ?= 10
 P ?= 2
@@ -86,7 +92,8 @@ dirs:
 		@mkdir -p $(BINDIR) $(OBJDIR) $(OBJDIR)/ipc $(OBJDIR)/master $(OBJDIR)/player $(OBJDIR)/view
 
 clean:
-	@rm -rf $(OBJDIR) $(MASTER_BIN) $(VIEW_BIN) $(PLAYER_BIN) ./*.o
+	@rm -rf $(OBJDIR) ./*.o
+	@rm -f $(CLEAN_BINS)
 	@echo "Clean."
 
 clean-shm: ensure-docker

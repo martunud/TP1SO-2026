@@ -67,3 +67,6 @@ The project was designed to be compiled inside the container provided by the cou
 ## AI Usage
 
 AI (Claude) was used as an assistant during development for specific queries about the behavior of POSIX system calls (`sem_init`, `mmap`, `select`) and to review the readers-writer synchronization logic. The source code was written and reviewed by the team; the AI did not generate blocks of code that were incorporated directly into the repository without modification.
+
+## PVS-Studio Report
+PVS-Studio was successfully executed on the complete project using the compilation database generated from the build process. All source files were analyzed, and the final report showed no warnings, errors, or suspicious constructs. Therefore, the static analysis concluded without detecting issues in the submitted implementation.
